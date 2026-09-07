@@ -7,7 +7,7 @@ import json
 import re
 
 from ..types import HumanDecision
-from .base import SpecGenerationOutput
+from .base import SpecGenerationOutput, TokenUsage
 
 _FENCED_JSON = re.compile(r"```json\s*(.*?)```", re.IGNORECASE | re.DOTALL)
 _LEAD_FENCE = re.compile(r"^```(?:markdown|md)?\s*\n?", re.IGNORECASE)
@@ -36,7 +36,9 @@ def _coerce_decisions(value: object) -> list[HumanDecision]:
     return out
 
 
-def decode_generator_output(raw: str, model_provider: str, model: str) -> SpecGenerationOutput:
+def decode_generator_output(
+    raw: str, model_provider: str, model: str, usage: TokenUsage | None = None
+) -> SpecGenerationOutput:
     text = raw.strip()
 
     fenced = _FENCED_JSON.search(text)
@@ -47,7 +49,11 @@ def decode_generator_output(raw: str, model_provider: str, model: str) -> SpecGe
             decisions = _coerce_decisions(obj.get("needsDecision")) if isinstance(obj, dict) else []
             if decisions:
                 return SpecGenerationOutput(
-                    spec_body="", model_provider=model_provider, model=model, human_decisions=decisions
+                    spec_body="",
+                    model_provider=model_provider,
+                    model=model,
+                    human_decisions=decisions,
+                    usage=usage,
                 )
         except json.JSONDecodeError:
             pass  # not a decision block — treat as spec body
@@ -55,4 +61,6 @@ def decode_generator_output(raw: str, model_provider: str, model: str) -> SpecGe
     body = _LEAD_FENCE.sub("", text)
     body = _TRAIL_FENCE.sub("", body)
     body = _FRONTMATTER.sub("", body, count=1)
-    return SpecGenerationOutput(spec_body=body.strip(), model_provider=model_provider, model=model)
+    return SpecGenerationOutput(
+        spec_body=body.strip(), model_provider=model_provider, model=model, usage=usage
+    )

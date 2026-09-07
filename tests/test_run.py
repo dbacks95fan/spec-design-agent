@@ -6,7 +6,7 @@ from pathlib import Path
 from conftest import canonical_intent, sha256, write_exact
 
 from spec_design_agent.config import load_config
-from spec_design_agent.generators.base import SpecGenerationOutput
+from spec_design_agent.generators.base import SpecGenerationOutput, TokenUsage
 from spec_design_agent.generators.mock import MockGenerator
 from spec_design_agent.run import EXIT_CODES, run_spec_design
 from spec_design_agent.types import HumanDecision
@@ -125,3 +125,57 @@ def test_invalid_request_shape_raises_to_caller(staged_repo_and_request):
         assert False, "expected RequestValidationError"
     except Exception as exc:  # noqa: BLE001
         assert "failed validation" in str(exc)
+
+
+class _UsageReportingGenerator:
+    """A mock that also reports usage, so the run-level plumbing is exercised
+    rather than just build_result()."""
+
+    name = "mock"
+
+    def __init__(self, usage, **kwargs):
+        self._usage = usage
+        self._inner = MockGenerator(**kwargs)
+
+    def generate(self, data):
+        out = self._inner.generate(data)
+        out.usage = self._usage
+        return out
+
+
+def test_usage_reaches_the_result_the_run_record_and_disk(staged_repo_and_request):
+    root, request, _text, _path = staged_repo_and_request
+    usage = TokenUsage(input_tokens=1000, output_tokens=200, cache_read_tokens=50, turns=2, cost_usd=0.05)
+
+    outcome = run_spec_design(
+        request, generator=_UsageReportingGenerator(usage), config=load_config(provider="mock")
+    )
+
+    assert outcome.result.status == "spec_ready"
+    # The spec_ready path builds its result directly rather than via finish(),
+    # so this asserts that call site carries usage too.
+    assert outcome.result.to_json()["usage"]["totalTokens"] == 1250
+    assert outcome.result.to_json()["usage"]["costUsd"] == 0.05
+    assert outcome.run_record.to_json()["usage"]["totalTokens"] == 1250
+
+    persisted = json.loads((root / ".agent" / "work" / "INT-MF-0042" / "spec-result.json").read_text())
+    assert persisted["usage"]["inputTokens"] == 1000
+
+
+def test_usage_is_reported_on_a_needs_decision_run(staged_repo_and_request):
+    _root, request, _text, _path = staged_repo_and_request
+    usage = TokenUsage(input_tokens=300, output_tokens=40, turns=1, cost_usd=0.004)
+    gen = _UsageReportingGenerator(
+        usage,
+        force_decisions=[HumanDecision(question="q", impact="i", minimum_authority="a")],
+    )
+    outcome = run_spec_design(request, generator=gen, config=load_config(provider="mock"))
+    assert outcome.result.status == "needs_decision"
+    assert outcome.result.to_json()["usage"]["totalTokens"] == 340
+
+
+def test_a_run_without_usage_omits_the_field_entirely(staged_repo_and_request):
+    _root, request, _text, _path = staged_repo_and_request
+    outcome = run_spec_design(request, **_mock_deps())
+    assert "usage" not in outcome.result.to_json()
+    assert "usage" not in outcome.run_record.to_json()

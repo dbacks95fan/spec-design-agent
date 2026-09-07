@@ -20,17 +20,40 @@
   ],
   "additionalProperties": false,
   "properties": {
-    "runId": { "type": "string", "minLength": 1 },
-    "workItem": { "type": "string", "minLength": 1 },
+    "runId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "workItem": {
+      "type": "string",
+      "minLength": 1
+    },
     "status": {
       "description": "spec_ready: reviewable spec committed. needs_decision: a material decision is missing. blocked: an input/integrity/access/environment precondition failed. failed: an unexpected execution failure occurred.",
       "type": "string",
-      "enum": ["spec_ready", "needs_decision", "blocked", "failed"]
+      "enum": [
+        "spec_ready",
+        "needs_decision",
+        "blocked",
+        "failed"
+      ]
     },
-    "summary": { "type": "string", "minLength": 1 },
-    "branch": { "type": "string", "minLength": 1 },
-    "workspace": { "type": "string", "minLength": 1 },
-    "intentCommit": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+    "summary": {
+      "type": "string",
+      "minLength": 1
+    },
+    "branch": {
+      "type": "string",
+      "minLength": 1
+    },
+    "workspace": {
+      "type": "string",
+      "minLength": 1
+    },
+    "intentCommit": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
     "frozenArtifactSha256": {
       "description": "Raw-byte hash of the frozen intent.md this run verified.",
       "type": "string",
@@ -59,46 +82,141 @@
     "blockingConcerns": {
       "description": "Concerns that prevent Design Review. Non-empty implies status is not spec_ready.",
       "type": "array",
-      "items": { "type": "string", "minLength": 1 }
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
     },
     "nonBlockingConcerns": {
       "description": "Concerns a human reviewer should see but which do not block routing to Design Review.",
       "type": "array",
-      "items": { "type": "string", "minLength": 1 }
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
     },
     "humanDecisions": {
       "description": "Specific, material decisions a human must make. Non-empty implies status is needs_decision.",
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["question", "impact", "minimumAuthority"],
+        "required": [
+          "question",
+          "impact",
+          "minimumAuthority"
+        ],
         "additionalProperties": false,
         "properties": {
-          "question": { "type": "string", "minLength": 1 },
-          "impact": { "type": "string", "minLength": 1 },
+          "question": {
+            "type": "string",
+            "minLength": 1
+          },
+          "impact": {
+            "type": "string",
+            "minLength": 1
+          },
           "options": {
             "type": "array",
-            "items": { "type": "string", "minLength": 1 }
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
           },
-          "minimumAuthority": { "type": "string", "minLength": 1 }
+          "minimumAuthority": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "usage": {
+      "description": "Token and cost totals for the generation. Absent when the provider does not report usage (for example the deterministic mock provider).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "inputTokens",
+        "outputTokens",
+        "cacheReadTokens",
+        "cacheCreationTokens",
+        "totalTokens",
+        "turns"
+      ],
+      "properties": {
+        "inputTokens": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "outputTokens": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "cacheReadTokens": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "cacheCreationTokens": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "totalTokens": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "turns": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "costUsd": {
+          "description": "Provider-reported cost in USD, when available.",
+          "type": "number",
+          "minimum": 0
         }
       }
     }
   },
   "allOf": [
     {
-      "if": { "properties": { "status": { "const": "spec_ready" } } },
-      "then": {
-        "required": ["specCommit", "specPath", "specVersion"],
+      "if": {
         "properties": {
-          "blockingConcerns": { "type": "array", "maxItems": 0 },
-          "humanDecisions": { "type": "array", "maxItems": 0 }
+          "status": {
+            "const": "spec_ready"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "specCommit",
+          "specPath",
+          "specVersion"
+        ],
+        "properties": {
+          "blockingConcerns": {
+            "type": "array",
+            "maxItems": 0
+          },
+          "humanDecisions": {
+            "type": "array",
+            "maxItems": 0
+          }
         }
       }
     },
     {
-      "if": { "properties": { "status": { "const": "needs_decision" } } },
-      "then": { "properties": { "humanDecisions": { "type": "array", "minItems": 1 } } }
+      "if": {
+        "properties": {
+          "status": {
+            "const": "needs_decision"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "humanDecisions": {
+            "type": "array",
+            "minItems": 1
+          }
+        }
+      }
     }
   ]
 }

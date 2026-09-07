@@ -103,6 +103,7 @@ def run_spec_design(
             spec_commit=(provenance or {}).get("spec_commit"),
             spec_path=(provenance or {}).get("spec_path"),
             spec_version=(provenance or {}).get("spec_version"),
+            usage=(provenance or {}).get("usage"),
         )
         run_record: SpecRunRecord | None = None
         if provenance:
@@ -116,6 +117,7 @@ def run_spec_design(
                 completed_at=_now_iso(now),
                 status=status,
                 spec_version=provenance.get("spec_version"),
+                usage=provenance.get("usage"),
             )
         return RunOutcome(result=result, run_record=run_record, exit_code=EXIT_CODES[status])
 
@@ -163,6 +165,7 @@ def run_spec_design(
             "model_provider": generated.model_provider,
             "model": generated.model,
             "base_commit": prepared.head_commit,
+            "usage": generated.usage.to_json() if generated.usage else None,
         }
 
         if generated.human_decisions:
@@ -223,6 +226,7 @@ def run_spec_design(
             completed_at=_now_iso(now),
             status="spec_ready",
             spec_version=spec_version,
+            usage=provenance.get("usage"),
         )
         _persist_run_record(work_dir, run_record)
 
@@ -245,6 +249,7 @@ def run_spec_design(
             spec_path=prepared.paths.spec_rel,
             spec_version=spec_version,
             non_blocking_concerns=non_blocking,
+            usage=provenance.get("usage"),
         )
         (work_dir / "spec-result.json").write_text(json.dumps(result.to_json(), indent=2), encoding="utf-8")
 

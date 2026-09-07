@@ -4,10 +4,12 @@ FROM ghcr.io/astral-sh/uv:python3.12-bookworm-slim AS build
 WORKDIR /app
 ENV UV_COMPILE_BYTECODE=1 UV_LINK_MODE=copy
 COPY pyproject.toml uv.lock README.md ./
-RUN uv sync --frozen --no-dev --no-install-project
+RUN uv sync --frozen --no-dev --extra claude --no-install-project
 COPY src ./src
 COPY schemas ./schemas
-RUN uv sync --frozen --no-dev
+# --extra claude: the default provider is `claude`, so the image must carry the
+# Claude Agent SDK or it cannot run its own default configuration.
+RUN uv sync --frozen --no-dev --extra claude
 
 FROM python:3.12-slim-bookworm
 WORKDIR /app

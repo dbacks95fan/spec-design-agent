@@ -113,6 +113,8 @@ class SpecResult:
     spec_commit: str | None = None
     spec_path: str | None = None
     spec_version: int | None = None
+    # Token/cost totals for the generation, when the provider reports them.
+    usage: dict[str, Any] | None = None
 
     def to_json(self) -> dict[str, Any]:
         out: dict[str, Any] = {
@@ -135,6 +137,8 @@ class SpecResult:
             out["specPath"] = self.spec_path
         if self.spec_version is not None:
             out["specVersion"] = self.spec_version
+        if self.usage is not None:
+            out["usage"] = self.usage
         return out
 
 
@@ -157,6 +161,8 @@ class SpecRunRecord:
     status: SpecStatus
     policy_versions: list[str] = field(default_factory=list)
     spec_version: int | None = None
+    # Token/cost totals for the generation, when the provider reports them.
+    usage: dict[str, Any] | None = None
 
     def to_json(self) -> dict[str, Any]:
         out: dict[str, Any] = {
@@ -179,6 +185,8 @@ class SpecRunRecord:
         }
         if self.spec_version is not None:
             out["specVersion"] = self.spec_version
+        if self.usage is not None:
+            out["usage"] = self.usage
         return out
 
 

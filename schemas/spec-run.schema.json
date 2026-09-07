@@ -24,10 +24,22 @@
   ],
   "additionalProperties": false,
   "properties": {
-    "runId": { "type": "string", "minLength": 1 },
-    "workItem": { "type": "string", "minLength": 1 },
-    "productId": { "type": "string", "minLength": 1 },
-    "intentCommit": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+    "runId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "workItem": {
+      "type": "string",
+      "minLength": 1
+    },
+    "productId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "intentCommit": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
     "frozenArtifactSha256": {
       "description": "Raw-byte hash of the frozen intent.md this run verified.",
       "type": "string",
@@ -38,22 +50,101 @@
       "type": "string",
       "pattern": "^[0-9a-f]{64}$"
     },
-    "baseCommit": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
-    "branch": { "type": "string", "minLength": 1 },
-    "modelProvider": { "type": "string", "minLength": 1 },
-    "model": { "type": "string", "minLength": 1 },
-    "agentVersion": { "type": "string", "minLength": 1 },
-    "promptVersion": { "type": "string", "minLength": 1 },
+    "baseCommit": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "branch": {
+      "type": "string",
+      "minLength": 1
+    },
+    "modelProvider": {
+      "type": "string",
+      "minLength": 1
+    },
+    "model": {
+      "type": "string",
+      "minLength": 1
+    },
+    "agentVersion": {
+      "type": "string",
+      "minLength": 1
+    },
+    "promptVersion": {
+      "type": "string",
+      "minLength": 1
+    },
     "policyVersions": {
       "type": "array",
-      "items": { "type": "string", "minLength": 1 }
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
     },
-    "startedAt": { "type": "string", "minLength": 1 },
-    "completedAt": { "type": "string", "minLength": 1 },
+    "startedAt": {
+      "type": "string",
+      "minLength": 1
+    },
+    "completedAt": {
+      "type": "string",
+      "minLength": 1
+    },
     "status": {
       "type": "string",
-      "enum": ["spec_ready", "needs_decision", "blocked", "failed"]
+      "enum": [
+        "spec_ready",
+        "needs_decision",
+        "blocked",
+        "failed"
+      ]
     },
-    "specVersion": { "type": "integer", "minimum": 1 }
+    "specVersion": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "usage": {
+      "description": "Token and cost totals for the generation. Absent when the provider does not report usage (for example the deterministic mock provider).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "inputTokens",
+        "outputTokens",
+        "cacheReadTokens",
+        "cacheCreationTokens",
+        "totalTokens",
+        "turns"
+      ],
+      "properties": {
+        "inputTokens": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "outputTokens": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "cacheReadTokens": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "cacheCreationTokens": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "totalTokens": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "turns": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "costUsd": {
+          "description": "Provider-reported cost in USD, when available.",
+          "type": "number",
+          "minimum": 0
+        }
+      }
+    }
   }
 }

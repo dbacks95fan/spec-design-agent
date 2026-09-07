@@ -24,6 +24,7 @@ def build_result(
     blocking_concerns: list[str] | None = None,
     non_blocking_concerns: list[str] | None = None,
     human_decisions: list[HumanDecision] | None = None,
+    usage: dict[str, object] | None = None,
 ) -> SpecResult:
     result = SpecResult(
         run_id=request.run_id,
@@ -41,6 +42,7 @@ def build_result(
         spec_commit=spec_commit,
         spec_path=spec_path,
         spec_version=spec_version,
+        usage=usage,
     )
 
     if result.status == "spec_ready":

@@ -63,3 +63,37 @@ def test_accepts_well_formed_needs_decision():
         human_decisions=[HumanDecision(question="delimiter?", impact="data contract", minimum_authority="product owner")],
     )
     assert len(result.human_decisions) == 1
+
+
+def test_result_carries_usage_and_validates_against_the_schema():
+    usage = {
+        "inputTokens": 12000,
+        "outputTokens": 3400,
+        "cacheReadTokens": 800,
+        "cacheCreationTokens": 200,
+        "totalTokens": 16400,
+        "turns": 4,
+        "costUsd": 0.1875,
+    }
+    result = build_result(
+        **BASE,
+        status="spec_ready",
+        summary="ready",
+        spec_commit="b" * 40,
+        spec_path=".agent/work/INT-MF-0042/spec.md",
+        spec_version=1,
+        usage=usage,
+    )
+    assert result.to_json()["usage"] == usage
+
+
+def test_usage_is_omitted_when_the_provider_does_not_report_it():
+    result = build_result(
+        **BASE,
+        status="spec_ready",
+        summary="ready",
+        spec_commit="b" * 40,
+        spec_path=".agent/work/INT-MF-0042/spec.md",
+        spec_version=1,
+    )
+    assert "usage" not in result.to_json()

@@ -20,6 +20,7 @@ def build_run_record(
     status: SpecStatus,
     spec_version: int | None = None,
     policy_versions: list[str] | None = None,
+    usage: dict[str, object] | None = None,
 ) -> SpecRunRecord:
     record = SpecRunRecord(
         run_id=request.run_id,
@@ -39,6 +40,7 @@ def build_run_record(
         status=status,
         policy_versions=policy_versions or [],
         spec_version=spec_version,
+        usage=usage,
     )
     errors = validate("spec-run.schema.json", record.to_json())
     if errors:
