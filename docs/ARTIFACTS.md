@@ -7,9 +7,12 @@
   intent.md
   spec.md
   spec-run.json
+  spec-result.json
 ```
 
 `intent.md` is a byte-for-byte frozen input. The agent must not edit it.
+`spec-result.json` persists the last structured result so a retry with the same
+`runId` returns it without re-running (`INTEGRATION.md`, idempotency).
 
 ## `spec.md`
 
@@ -20,7 +23,8 @@ Use this structure. Sections may be marked not relevant only when an explicit ra
 work_item: INT-MF-0042
 product_id: MF
 intent_commit: <sha>
-intent_sha256: <hash>
+frozen_artifact_sha256: <raw-byte hash of the frozen intent.md>
+intent_content_sha256: <normalized content hash, carried as provenance>
 base_commit: <sha>
 spec_version: 1
 status: draft
@@ -52,7 +56,8 @@ The specification must distinguish confirmed facts from design decisions and ass
   "workItem": "INT-MF-0042",
   "productId": "MF",
   "intentCommit": "full-git-sha",
-  "intentHash": "sha256",
+  "frozenArtifactSha256": "sha256",
+  "intentContentSha256": "sha256",
   "baseCommit": "full-git-sha",
   "branch": "work/INT-MF-0042",
   "modelProvider": "configured-provider",
@@ -62,9 +67,12 @@ The specification must distinguish confirmed facts from design decisions and ass
   "policyVersions": [],
   "startedAt": "RFC-3339 timestamp",
   "completedAt": "RFC-3339 timestamp",
-  "status": "spec_ready"
+  "status": "spec_ready",
+  "specVersion": 1
 }
 ```
+
+`specVersion` is present when `status` is `spec_ready`.
 
 Never store secrets, credentials, private chain-of-thought, or raw sensitive content in this record.
 
@@ -79,13 +87,18 @@ Never store secrets, credentials, private chain-of-thought, or raw sensitive con
   "branch": "work/INT-MF-0042",
   "workspace": "assigned workspace reference",
   "intentCommit": "full-git-sha",
-  "intentHash": "sha256",
+  "frozenArtifactSha256": "sha256",
+  "intentContentSha256": "sha256",
   "specCommit": "full-git-sha",
   "specPath": ".agent/work/INT-MF-0042/spec.md",
+  "specVersion": 1,
   "blockingConcerns": [],
   "nonBlockingConcerns": [],
   "humanDecisions": []
 }
 ```
 
-`humanDecisions` contains only specific, material decisions. A `spec_ready` result has no unresolved blocking decision.
+`humanDecisions` contains only specific, material decisions, each shaped
+`{question, impact, options?, minimumAuthority}` per `OPERATING_CONTRACT.md`
+"Decision handling". A `spec_ready` result has no unresolved blocking decision and
+carries `specCommit`, `specPath`, and `specVersion`.

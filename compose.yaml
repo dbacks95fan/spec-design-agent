@@ -1,0 +1,28 @@
+# ABOUTME: Runs the Spec & Design Agent as a one-shot job. Invoke with:
+# ABOUTME:   docker compose run --rm spec-design-agent spec --request /work/<work-item>/request.json
+services:
+  spec-design-agent:
+    build: .
+    image: "${SPEC_AGENT_IMAGE:-spec-design-agent:local}"
+    container_name: spec-design-agent
+    restart: "no"
+    env_file:
+      - ./.runtime.env
+    environment:
+      # Transport-neutral: choose the generator provider without rebuilding the image.
+      SPEC_AGENT_PROVIDER: "${SPEC_AGENT_PROVIDER:-claude}"
+      SPEC_AGENT_MODEL: "${SPEC_AGENT_MODEL:-}"
+      SPEC_AGENT_TIMEOUT_MS: "${SPEC_AGENT_TIMEOUT_MS:-600000}"
+      HOME: /tmp
+    volumes:
+      # The Conductor mounts the isolated work-item workspace here read-write; the
+      # agent writes only under .agent/work/<work-item>/.
+      - "${SPEC_AGENT_WORKSPACE:-./workspace}:/work"
+    working_dir: /app
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL

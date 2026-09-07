@@ -2,14 +2,14 @@
 
 ## Objective
 
-Build a stateless Spec & Design Agent that consumes a frozen product intent and produces a versioned, reviewable specification. It is the first engineering-stage worker after **Ready for Planning** and the input to human Design Review.
+Build a stateless Spec & Design Agent that consumes a frozen product intent and produces a versioned, reviewable specification. It is the first engineering-stage worker after **Ready for Planning** and the input to **Design Review** (performed by a human).
 
-The implementation must be usable as a bounded job or container. Durable state belongs only in the supplied workspace, the target Git branch, and Conductor-owned workflow records.
+The implementation must be usable as a bounded job. Containerization is an agent-specific deployment decision, not a system-wide mandate (`agentic-sdlc/docs/ARCHITECTURE.md`, "Deployment boundary"). Durable state belongs only in the supplied workspace, the target Git branch, and Conductor-owned workflow records.
 
 ## Required behavior
 
 1. Accept a structured work request defined in [Integration](INTEGRATION.md).
-2. Validate the request, repository identity, frozen intent commit, and SHA-256 hash before producing an artifact.
+2. Validate the request, repository identity, frozen intent commit, and the raw-byte `frozenArtifactSha256` before producing an artifact. Carry `contentSha256` through as provenance.
 3. Work only in the assigned isolated workspace and `work/<intent-id>` branch.
 4. Inspect the target repository and relevant repository-local instructions before design. Do not modify product code.
 5. Create or update `.agent/work/<intent-id>/spec.md` and `.agent/work/<intent-id>/spec-run.json`.
@@ -40,7 +40,7 @@ Add structured, sanitized logging; timeouts; bounded repository inspection; canc
 
 ## Non-negotiable rules
 
-- The frozen intent is immutable. If its supplied hash differs from the workspace copy, stop with `blocked` / `INTENT_MUTATED`.
+- The frozen intent is immutable. If `frozenArtifactSha256` differs from the raw bytes of the workspace copy, stop with `blocked` / `INTENT_MUTATED`.
 - The specification may iterate during Design Review, but every revision must retain provenance to the same frozen intent.
 - A spec is not a test plan alone. It must state observable outcomes and preserve the distinction between test evidence and actual outcome delivery.
 - Do not use this worker to create an implementation plan or product code. Those are later, separate stages.

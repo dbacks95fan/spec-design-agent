@@ -17,7 +17,8 @@ The Conductor supplies, at minimum:
     "repository": "org/intent-backlog",
     "commit": "full-git-sha",
     "path": "products/mealflow/intents/INT-MF-0042/intent.md",
-    "sha256": "lowercase-hex"
+    "frozenArtifactSha256": "lowercase-hex",
+    "contentSha256": "lowercase-hex"
   },
   "target": {
     "repository": "org/product-repository",
@@ -35,11 +36,18 @@ The Conductor supplies, at minimum:
 
 The implementation may add optional, versioned fields; it must reject incompatible request versions rather than infer missing material information.
 
+`intent.frozenArtifactSha256` and `intent.contentSha256` are the two hashes of the
+Ready-for-Planning freeze tuple (`agentic-sdlc/docs/ARTIFACTS.md`, "Integrity and
+freeze tuple"). This agent, as the first engineering-stage worker, verifies the
+staged bytes against `frozenArtifactSha256`; `contentSha256` (the Intent Creation
+Skill's normalized-rendering hash) is carried through as provenance and not
+verified here.
+
 ## Preconditions
 
 - `workItem`, `productId`, repositories, commits, branch, and workspace are valid and mutually consistent.
 - Ready-for-Planning approval exists.
-- The intent exists at the requested commit and its bytes match the supplied SHA-256 hash.
+- The intent exists at the requested commit and its raw bytes match `intent.frozenArtifactSha256`.
 - The workspace is isolated to the requested work item and based on the supplied base commit.
 - The agent can write only `.agent/work/<work-item>/` and agent-owned metadata.
 
@@ -60,7 +68,7 @@ Use `needs_decision` for material ambiguity. State the exact question, decision 
 
 | Status | Meaning | Conductor action |
 | --- | --- | --- |
-| `spec_ready` | Valid specification committed and ready for human Design Review | Route to Design Review |
+| `spec_ready` | Valid specification committed and ready for Design Review | Route to Design Review |
 | `needs_decision` | A material decision is missing | Hold work and request human decision |
 | `blocked` | Input, integrity, access, or environment precondition failed | Surface blocker; do not advance |
 | `failed` | An unexpected execution failure occurred | Preserve safe diagnostics and apply retry policy |

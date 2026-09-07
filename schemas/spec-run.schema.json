@@ -1,0 +1,59 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/dbacks95fan/spec-design-agent/schemas/spec-run.schema.json",
+  "title": "Spec & Design Agent run record",
+  "description": "Sanitized provenance record written to .agent/work/<work-item>/spec-run.json. Never contains secrets, credentials, or private model reasoning.",
+  "type": "object",
+  "required": [
+    "runId",
+    "workItem",
+    "productId",
+    "intentCommit",
+    "frozenArtifactSha256",
+    "intentContentSha256",
+    "baseCommit",
+    "branch",
+    "modelProvider",
+    "model",
+    "agentVersion",
+    "promptVersion",
+    "policyVersions",
+    "startedAt",
+    "completedAt",
+    "status"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "runId": { "type": "string", "minLength": 1 },
+    "workItem": { "type": "string", "minLength": 1 },
+    "productId": { "type": "string", "minLength": 1 },
+    "intentCommit": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+    "frozenArtifactSha256": {
+      "description": "Raw-byte hash of the frozen intent.md this run verified.",
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "intentContentSha256": {
+      "description": "Normalized content hash carried from the freeze tuple as provenance.",
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "baseCommit": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+    "branch": { "type": "string", "minLength": 1 },
+    "modelProvider": { "type": "string", "minLength": 1 },
+    "model": { "type": "string", "minLength": 1 },
+    "agentVersion": { "type": "string", "minLength": 1 },
+    "promptVersion": { "type": "string", "minLength": 1 },
+    "policyVersions": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "startedAt": { "type": "string", "minLength": 1 },
+    "completedAt": { "type": "string", "minLength": 1 },
+    "status": {
+      "type": "string",
+      "enum": ["spec_ready", "needs_decision", "blocked", "failed"]
+    },
+    "specVersion": { "type": "integer", "minimum": 1 }
+  }
+}

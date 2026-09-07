@@ -1,0 +1,76 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/dbacks95fan/spec-design-agent/schemas/spec-request.schema.json",
+  "title": "Spec & Design Agent work request",
+  "description": "Bounded request supplied by the Conductor after Ready for Planning. See docs/OPERATING_CONTRACT.md and docs/INTEGRATION.md.",
+  "type": "object",
+  "required": ["runId", "workItem", "productId", "intent", "target", "approval"],
+  "additionalProperties": true,
+  "properties": {
+    "requestVersion": {
+      "description": "Optional versioned request contract identifier. Absent means version 1.",
+      "type": "integer",
+      "minimum": 1
+    },
+    "runId": {
+      "description": "Identifies one execution attempt for idempotency.",
+      "type": "string",
+      "minLength": 1
+    },
+    "workItem": {
+      "description": "Product-prefixed intent/work-item identifier, e.g. INT-MF-0042.",
+      "type": "string",
+      "pattern": "^[A-Za-z][A-Za-z0-9]*(?:-[A-Za-z0-9]+)+$"
+    },
+    "productId": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9]+$"
+    },
+    "intent": {
+      "description": "Frozen intent reference from the Ready-for-Planning freeze tuple. Both hashes are carried (agentic-sdlc/docs/ARTIFACTS.md, Integrity and freeze tuple).",
+      "type": "object",
+      "required": ["repository", "commit", "path", "frozenArtifactSha256", "contentSha256"],
+      "additionalProperties": true,
+      "properties": {
+        "repository": { "type": "string", "minLength": 1 },
+        "commit": {
+          "description": "Full 40-char SHA in the intent-backlog repository the frozen intent was captured at.",
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        "path": { "type": "string", "minLength": 1 },
+        "frozenArtifactSha256": {
+          "description": "SHA-256 of the raw bytes of the exact intent.md snapshot. This agent verifies the staged copy against it.",
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "contentSha256": {
+          "description": "SHA-256 of the Intent Creation Skill's canonical normalized rendering. Retained as provenance; not verified here.",
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    },
+    "target": {
+      "type": "object",
+      "required": ["repository", "baseCommit", "branch", "workspace"],
+      "additionalProperties": true,
+      "properties": {
+        "repository": { "type": "string", "minLength": 1 },
+        "baseCommit": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+        "branch": { "type": "string", "minLength": 1 },
+        "workspace": { "type": "string", "minLength": 1 }
+      }
+    },
+    "approval": {
+      "type": "object",
+      "required": ["readyForPlanning", "approvedBy", "approvedAt"],
+      "additionalProperties": true,
+      "properties": {
+        "readyForPlanning": { "type": "boolean" },
+        "approvedBy": { "type": "string", "minLength": 1 },
+        "approvedAt": { "type": "string", "minLength": 1 }
+      }
+    }
+  }
+}
