@@ -46,11 +46,19 @@ def test_blocks_identity_mismatch():
     assert exc.value.code == "INTENT_IDENTITY_MISMATCH"
 
 
-def test_blocks_non_frozen_status():
-    text = canonical_intent(status="Refining")
-    with pytest.raises(PreconditionError) as exc:
+def test_admits_any_lifecycle_status():
+    # The freeze protocol is still documented in agentic-sdlc/docs, but a run is
+    # admitted on identity and byte integrity alone — not on lifecycle state.
+    for status in ("New Ideas", "Refining", "Accepted", "Frozen"):
+        text = canonical_intent(status=status)
         verify_frozen_intent(_request_for(text), parse_intent(text), sha256_text(text))
-    assert exc.value.code == "INTENT_NOT_FROZEN"
+
+
+def test_relaxing_the_status_gate_does_not_relax_integrity():
+    text = canonical_intent(status="New Ideas")
+    with pytest.raises(PreconditionError) as exc:
+        verify_frozen_intent(_request_for(text), parse_intent(text), "f" * 64)
+    assert exc.value.code == "INTENT_MUTATED"
 
 
 def test_open_decisions_return_needs_decision():

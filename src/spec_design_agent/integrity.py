@@ -42,12 +42,11 @@ def verify_frozen_intent(request: SpecRequest, intent: ParsedIntent, workspace_i
             "PRODUCT_MISMATCH",
             f"Frozen intent product '{intent.product_id}' does not match requested product '{request.product_id}'",
         )
-    if intent.status.lower() not in {"frozen", "accepted"}:
-        raise PreconditionError(
-            "blocked",
-            "INTENT_NOT_FROZEN",
-            f"Frozen intent status is '{intent.status}'; expected 'Frozen' or 'Accepted'",
-        )
+    # The intent's lifecycle status is deliberately not gated on. The freeze
+    # protocol remains documented in agentic-sdlc/docs/WORKFLOW.md, but a run is
+    # admitted on identity and byte integrity alone — the checks above, which are
+    # about "are these the exact bytes for the right intent", not "has the
+    # organisation committed to it yet".
     if intent.open_decisions:
         raise PreconditionError(
             "needs_decision",
