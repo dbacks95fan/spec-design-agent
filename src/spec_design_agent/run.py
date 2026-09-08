@@ -205,6 +205,11 @@ def run_spec_design(
                 ),
                 *(["functional requirements lack observable acceptance criteria"] if check.criteria_without_observability else []),
             ]
+            # Keep the rejected draft. Without it a paid generation leaves nothing
+            # to inspect, and the only way to see what the model actually wrote is
+            # to pay for another run. Written uncommitted and under a distinct
+            # name so it can never be mistaken for an approved spec.md.
+            (work_dir / "spec.rejected.md").write_text(spec_markdown, encoding="utf-8")
             outcome = finish(
                 "failed",
                 f"The generated specification for {request.work_item} did not meet the structural contract.",

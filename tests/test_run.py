@@ -179,3 +179,20 @@ def test_a_run_without_usage_omits_the_field_entirely(staged_repo_and_request):
     outcome = run_spec_design(request, **_mock_deps())
     assert "usage" not in outcome.result.to_json()
     assert "usage" not in outcome.run_record.to_json()
+
+
+def test_a_structurally_invalid_spec_is_kept_for_inspection(staged_repo_and_request):
+    root, request, _text, _path = staged_repo_and_request
+    gen = MockGenerator(omit_sections={"Validation strategy"})
+    outcome = run_spec_design(request, generator=gen, config=load_config(provider="mock"))
+
+    assert outcome.result.status == "failed"
+    assert any("Validation strategy" in c for c in outcome.result.blocking_concerns)
+
+    work = root / ".agent" / "work" / "INT-MF-0042"
+    rejected = work / "spec.rejected.md"
+    assert rejected.exists(), "a paid generation must leave something to inspect"
+    assert "# Requirements and Design Specification" in rejected.read_text(encoding="utf-8")
+    # It must never be mistaken for an approved spec, nor committed.
+    assert not (work / "spec.md").exists()
+    assert "spec.rejected.md" not in _git(root, ["show", "--stat", "--format=", "HEAD"])
