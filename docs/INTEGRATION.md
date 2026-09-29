@@ -5,15 +5,16 @@
 The Conductor owns workflow state, assignment, retries, concurrency, and Trello updates. This agent receives a bounded request and returns a bounded result. It does not poll Trello, select work, change priority, or trigger later stages.
 
 ```text
-Ready for Planning
-  -> Conductor validates approval and freezes intent revision
-  -> Spec & Design Agent validates and produces specification
-  -> Conductor posts a decision brief and routes to Design Review
-  -> a human reviewer approves the spec, enabling the separate Implementation Planning stage
+Prioritized
+  -> Conductor validates frozen intent and policy profile
+  -> card enters Spec & Design and invokes this agent
+  -> agent produces spec.md and proposed work-contract.yaml
+  -> human accepts both while the card remains in Spec & Design
+  -> move into Execution invokes the Coding Agent
 ```
 
 Stage names follow the canonical vocabulary in `agentic-sdlc/docs/WORKFLOW.md`
-(`Spec & Design -> Design Review -> Implementation Planning -> Ready for Build -> Coding`).
+(`Prioritized -> Spec & Design -> Execution`). The human review is a gate inside Spec & Design, not a separate board column.
 
 ## Idempotency and retries
 
@@ -29,4 +30,4 @@ organization creates a new intent/work item.
 
 ## Downstream planning handoff
 
-Only an approved `spec.md` becomes input to the separate Implementation Planning stage. The planning worker is responsible for `plan.md` and the work contract; this agent must not create either as a substitute for design review.
+The agent creates a proposed `work-contract.yaml` alongside `spec.md`; it does not create a separate `plan.md`. The product owner accepts both artifacts before Execution. The Coding Agent validates those accepted references before making code changes.

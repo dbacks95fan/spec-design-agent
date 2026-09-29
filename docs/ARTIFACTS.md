@@ -6,6 +6,7 @@
 .agent/work/INT-MF-0042/
   intent.md
   spec.md
+  work-contract.yaml
   spec-run.json
   spec-result.json
 ```
@@ -39,6 +40,7 @@ status: draft
 ## Non-functional requirements
 ## Design and affected boundaries
 ## Data, security, privacy, and compliance considerations
+## Implementation and validation plan
 ## Error handling and operational behavior
 ## Validation strategy
 ## Dependencies, assumptions, and non-goals
@@ -47,6 +49,10 @@ status: draft
 ```
 
 The specification must distinguish confirmed facts from design decisions and assumptions. It must name affected boundaries and outcomes without prescribing product implementation code.
+
+## `work-contract.yaml`
+
+This proposed execution record references the frozen intent, policy profile, `spec.md`, target repository/base revision, allowed scope, acceptance criteria, and required deterministic validation. It is derived from the reviewed specification and contains no independent product decision. The product owner freezes it with `spec.md` before Execution starts.
 
 ## `spec-run.json`
 

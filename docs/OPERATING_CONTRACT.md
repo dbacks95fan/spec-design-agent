@@ -2,7 +2,7 @@
 
 ## Role
 
-The agent translates a verified frozen intent into an implementable requirements and design specification for human review. It may inspect the target repository and write only its assigned artifact directory. It has no authority to alter intent, code, Trello state, approvals, or releases.
+The agent translates a verified frozen intent and policy profile into an implementable requirements and design specification for human review. It produces a proposed machine-readable work contract from that same specification. It may inspect the target repository and write only its assigned artifact directory. It has no authority to alter intent, code, Trello state, approvals, or releases.
 
 ## Inputs
 
@@ -56,7 +56,7 @@ verified here.
 1. Validate the request and record a sanitized run start.
 2. Verify the frozen intent and workspace integrity. Stop immediately on mismatch.
 3. Read project instructions and inspect relevant code, interfaces, tests, architecture, and operational constraints.
-4. Produce a specification grounded in the frozen intent and confirmed repository facts.
+4. Produce sectioned `spec.md` and proposed `work-contract.yaml` grounded in the frozen intent, policy controls, and confirmed repository facts. `spec.md` contains the implementation and validation plan; no `plan.md` is created.
 5. Validate the artifact and run record against schemas and integrity rules.
 6. Commit agent-owned artifacts and return the structured result to the Conductor.
 
