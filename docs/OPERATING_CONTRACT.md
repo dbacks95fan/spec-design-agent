@@ -20,14 +20,6 @@ The Conductor supplies, at minimum:
     "frozenArtifactSha256": "lowercase-hex",
     "contentSha256": "lowercase-hex"
   },
-  "policyProfile": {
-    "repository": "org/intent-backlog",
-    "commit": "same-full-git-sha-as-intent",
-    "path": "products/mealflow/policy-profiles/MEALFLOW-DEFAULT.md",
-    "profileId": "MEALFLOW-DEFAULT",
-    "version": "1",
-    "frozenArtifactSha256": "lowercase-hex"
-  },
   "target": {
     "repository": "org/product-repository",
     "baseCommit": "full-git-sha",
@@ -35,7 +27,7 @@ The Conductor supplies, at minimum:
     "workspace": "assigned-absolute-path"
   },
   "approval": {
-    "prioritized": true,
+    "readyForPlanning": true,
     "approvedBy": "principal-or-system-id",
     "approvedAt": "RFC-3339 timestamp"
   }
@@ -44,14 +36,18 @@ The Conductor supplies, at minimum:
 
 The implementation may add optional, versioned fields; it must reject incompatible request versions rather than infer missing material information.
 
-`intent.frozenArtifactSha256`, `intent.contentSha256`, and `policyProfile.frozenArtifactSha256` are the hashes carried by the Prioritized freeze tuple (`agentic-sdlc/docs/ARTIFACTS.md`, "Integrity and freeze tuple"). This agent verifies the raw bytes of both staged artifacts and the policy-profile ID/version; `contentSha256` is retained as provenance.
+`intent.frozenArtifactSha256` and `intent.contentSha256` are the two hashes of the
+Ready-for-Planning freeze tuple (`agentic-sdlc/docs/ARTIFACTS.md`, "Integrity and
+freeze tuple"). This agent, as the first engineering-stage worker, verifies the
+staged bytes against `frozenArtifactSha256`; `contentSha256` (the Intent Creation
+Skill's normalized-rendering hash) is carried through as provenance and not
+verified here.
 
 ## Preconditions
 
 - `workItem`, `productId`, repositories, commits, branch, and workspace are valid and mutually consistent.
-- The Conductor provides a valid Prioritized freeze for the intent and policy profile.
+- Ready-for-Planning approval exists.
 - The intent exists at the requested commit and its raw bytes match `intent.frozenArtifactSha256`.
-- The policy profile exists at the same repository commit and its raw bytes and declared ID/version match `policyProfile`.
 - The workspace is isolated to the requested work item and based on the supplied base commit.
 - The agent can write only `.agent/work/<work-item>/` and agent-owned metadata.
 

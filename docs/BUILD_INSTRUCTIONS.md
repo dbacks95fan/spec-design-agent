@@ -9,7 +9,7 @@ The implementation must be usable as a bounded job. Containerization is an agent
 ## Required behavior
 
 1. Accept a structured work request defined in [Integration](INTEGRATION.md).
-2. Validate the request, repository identity, frozen intent and policy-profile commits, and both raw-byte `frozenArtifactSha256` values before producing an artifact. Carry `contentSha256` through as provenance.
+2. Validate the request, repository identity, frozen intent commit, and the raw-byte `frozenArtifactSha256` before producing an artifact. Carry `contentSha256` through as provenance.
 3. Work only in the assigned isolated workspace and `work/<intent-id>` branch.
 4. Inspect the target repository and relevant repository-local instructions before design. Do not modify product code.
 5. Create or update `.agent/work/<intent-id>/spec.md`, `.agent/work/<intent-id>/work-contract.yaml`, and `.agent/work/<intent-id>/spec-run.json`.
@@ -40,7 +40,7 @@ Add structured, sanitized logging; timeouts; bounded repository inspection; canc
 
 ## Non-negotiable rules
 
-- The frozen intent and policy profile are immutable. If either `frozenArtifactSha256` differs from the raw bytes of its workspace copy, stop with `blocked` and identify the mismatched input.
+- The frozen intent is immutable. If `frozenArtifactSha256` differs from the raw bytes of the workspace copy, stop with `blocked` / `INTENT_MUTATED`.
 - The specification may iterate during Design Review, but every revision must retain provenance to the same frozen intent.
 - A spec is not a test plan alone. It must state observable outcomes and preserve the distinction between test evidence and actual outcome delivery.
 - Do not write product code, approve the spec or work contract, or change Trello state. The proposed work contract is an execution record, not a separate human-authored plan.

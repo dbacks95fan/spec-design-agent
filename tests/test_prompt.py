@@ -16,8 +16,7 @@ FACTS = RepoFacts(
 
 def _input():
     return SpecPromptInput(
-        work_item="INT-MF-0042", product_id="MF", intent=parse_intent(canonical_intent()),
-        policy_profile="Profile ID: MEALFLOW-DEFAULT\nVersion: 1\n", repo_facts=FACTS
+        work_item="INT-MF-0042", product_id="MF", intent=parse_intent(canonical_intent()), repo_facts=FACTS
     )
 
 
@@ -26,8 +25,6 @@ def test_prompt_embeds_verbatim_intent_and_all_sections():
     assert system == SYSTEM_RULES
     assert "Weekly meal plan export" in user
     assert "=== END FROZEN INTENT ===" in user
-    assert "=== FROZEN POLICY & COMPLIANCE PROFILE" in user
-    assert "Profile ID: MEALFLOW-DEFAULT" in user
     for section in SPEC_SECTIONS:
         assert f"## {section}" in user
 

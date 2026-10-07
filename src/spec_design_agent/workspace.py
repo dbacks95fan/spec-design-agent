@@ -17,7 +17,6 @@ class WorkspacePaths:
     root: Path
     work_dir: Path
     intent_rel: str
-    policy_profile_rel: str
     spec_rel: str
     run_rel: str
 
@@ -29,7 +28,6 @@ def resolve_workspace_paths(request: SpecRequest) -> WorkspacePaths:
         root=root,
         work_dir=root / work_rel,
         intent_rel=(work_rel / "intent.md").as_posix(),
-        policy_profile_rel=(work_rel / "policy-profile.md").as_posix(),
         spec_rel=(work_rel / "spec.md").as_posix(),
         run_rel=(work_rel / "spec-run.json").as_posix(),
     )
@@ -54,7 +52,6 @@ class PreparedWorkspace:
     intent_path: Path
     # SHA-256 of the raw bytes of the staged frozen intent.md (the frozen-artifact hash).
     frozen_artifact_sha256: str
-    frozen_policy_profile_sha256: str
     head_commit: str
 
 
@@ -85,7 +82,6 @@ def prepare_workspace(request: SpecRequest) -> PreparedWorkspace:
 
     paths.work_dir.mkdir(parents=True, exist_ok=True)
     staged_intent = paths.work_dir / "intent.md"
-    staged_profile = paths.work_dir / "policy-profile.md"
 
     data: bytes | None = None
     if staged_intent.exists():
@@ -103,19 +99,10 @@ def prepare_workspace(request: SpecRequest) -> PreparedWorkspace:
             "No frozen intent is available in the workspace; the Conductor must stage intent.md before Spec & Design",
         )
 
-    profile_data: bytes | None = staged_profile.read_bytes() if staged_profile.exists() else None
-    if profile_data is None:
-        raise PreconditionError(
-            "blocked",
-            "POLICY_PROFILE_NOT_STAGED",
-            "No frozen policy profile is available in the workspace; the Conductor must stage the profile before Spec & Design",
-        )
-
     return PreparedWorkspace(
         paths=paths,
         intent_path=staged_intent,
         frozen_artifact_sha256=sha256_bytes(data),
-        frozen_policy_profile_sha256=sha256_bytes(profile_data),
         head_commit=head,
     )
 

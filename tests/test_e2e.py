@@ -48,7 +48,7 @@ def test_e2e_conductor_request_produces_committed_spec(staged_repo_and_request):
 
 def test_e2e_missing_approval_exits_20(staged_repo_and_request):
     root, request, _text, _path = staged_repo_and_request
-    request["approval"]["prioritized"] = False
+    request["approval"]["readyForPlanning"] = False
     code, result, _stderr = _invoke(_write(root, request))
     assert code == 20
     assert result["status"] == "blocked"

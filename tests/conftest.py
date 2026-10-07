@@ -38,8 +38,6 @@ trello_card_id: card-123
 trello_card_url: https://trello.test/card-123
 intent_version: 5
 status: {status}
-policy_profile_id: MEALFLOW-DEFAULT
-policy_profile_version: 1
 intent_commit: {FORTY_HEX}
 intent_hash: sha256:deadbeef
 frozen_commit: {FORTY_HEX}
@@ -103,7 +101,6 @@ In scope: current-week export. Non-goal: historical plans.
 def valid_request(**overrides) -> dict:
     intent_text = canonical_intent()
     request = {
-        "requestVersion": 2,
         "runId": "11111111-1111-1111-1111-111111111111",
         "workItem": "INT-MF-0042",
         "productId": "MF",
@@ -114,14 +111,6 @@ def valid_request(**overrides) -> dict:
             "frozenArtifactSha256": sha256(intent_text),
             "contentSha256": sha256("canonical:" + intent_text),
         },
-        "policyProfile": {
-            "repository": "dbacks95fan/intent-backlog",
-            "commit": FORTY_HEX,
-            "path": "products/mealflow/policy-profiles/MEALFLOW-DEFAULT.md",
-            "profileId": "MEALFLOW-DEFAULT",
-            "version": "1",
-            "frozenArtifactSha256": sha256("Profile ID: MEALFLOW-DEFAULT\n\nVersion: 1\n"),
-        },
         "target": {
             "repository": "dbacks95fan/mealflow",
             "baseCommit": BASE_HEX,
@@ -129,7 +118,7 @@ def valid_request(**overrides) -> dict:
             "workspace": "/work/INT-MF-0042",
         },
         "approval": {
-            "prioritized": True,
+            "readyForPlanning": True,
             "approvedBy": "principal:sobe",
             "approvedAt": "2026-09-06T12:30:00Z",
         },
@@ -180,11 +169,9 @@ def staged_repo_and_request(tmp_path):
             "package.json": '{"name": "fixture", "scripts": {"test": "pytest"}}',
             "src/index.py": "def noop():\n    return None\n",
             intent_path: intent_text,
-            ".agent/work/INT-MF-0042/policy-profile.md": "Profile ID: MEALFLOW-DEFAULT\n\nVersion: 1\n",
         },
     )
     request = {
-        "requestVersion": 2,
         "runId": f"run-{work_item}",
         "workItem": work_item,
         "productId": "MF",
@@ -195,20 +182,12 @@ def staged_repo_and_request(tmp_path):
             "frozenArtifactSha256": sha256(intent_text),
             "contentSha256": sha256("canonical:" + intent_text),
         },
-        "policyProfile": {
-            "repository": "dbacks95fan/intent-backlog",
-            "commit": FORTY_HEX,
-            "path": "products/mealflow/policy-profiles/MEALFLOW-DEFAULT.md",
-            "profileId": "MEALFLOW-DEFAULT",
-            "version": "1",
-            "frozenArtifactSha256": sha256("Profile ID: MEALFLOW-DEFAULT\n\nVersion: 1\n"),
-        },
         "target": {
             "repository": "dbacks95fan/mealflow",
             "baseCommit": base_commit,
             "branch": branch,
             "workspace": str(root),
         },
-        "approval": {"prioritized": True, "approvedBy": "principal:sobe", "approvedAt": "2026-09-06T12:30:00Z"},
+        "approval": {"readyForPlanning": True, "approvedBy": "principal:sobe", "approvedAt": "2026-09-06T12:30:00Z"},
     }
     return root, request, intent_text, intent_path

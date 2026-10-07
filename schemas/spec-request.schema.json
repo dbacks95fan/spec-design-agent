@@ -2,13 +2,13 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://github.com/dbacks95fan/spec-design-agent/schemas/spec-request.schema.json",
   "title": "Spec & Design Agent work request",
-  "description": "Bounded request supplied by the Conductor after a Prioritized freeze. See docs/OPERATING_CONTRACT.md and docs/INTEGRATION.md.",
+  "description": "Bounded request supplied by the Conductor after Ready for Planning. See docs/OPERATING_CONTRACT.md and docs/INTEGRATION.md.",
   "type": "object",
-  "required": ["requestVersion", "runId", "workItem", "productId", "intent", "policyProfile", "target", "approval"],
+  "required": ["runId", "workItem", "productId", "intent", "target", "approval"],
   "additionalProperties": true,
   "properties": {
     "requestVersion": {
-      "description": "Versioned request contract identifier.",
+      "description": "Optional versioned request contract identifier. Absent means version 1.",
       "type": "integer",
       "minimum": 1
     },
@@ -27,7 +27,7 @@
       "pattern": "^[A-Za-z0-9]+$"
     },
     "intent": {
-      "description": "Frozen intent reference from the Prioritized freeze tuple. Both hashes are carried (agentic-sdlc/docs/ARTIFACTS.md, Integrity and freeze tuple).",
+      "description": "Frozen intent reference from the Ready-for-Planning freeze tuple. Both hashes are carried (agentic-sdlc/docs/ARTIFACTS.md, Integrity and freeze tuple).",
       "type": "object",
       "required": ["repository", "commit", "path", "frozenArtifactSha256", "contentSha256"],
       "additionalProperties": true,
@@ -51,20 +51,6 @@
         }
       }
     },
-    "policyProfile": {
-      "description": "Selected policy profile frozen by the Conductor and copied byte-for-byte into the assigned workspace.",
-      "type": "object",
-      "required": ["repository", "commit", "path", "profileId", "version", "frozenArtifactSha256"],
-      "additionalProperties": true,
-      "properties": {
-        "repository": { "type": "string", "minLength": 1 },
-        "commit": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
-        "path": { "type": "string", "minLength": 1 },
-        "profileId": { "type": "string", "minLength": 1 },
-        "version": { "type": "string", "minLength": 1 },
-        "frozenArtifactSha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
-      }
-    },
     "target": {
       "type": "object",
       "required": ["repository", "baseCommit", "branch", "workspace"],
@@ -78,10 +64,10 @@
     },
     "approval": {
       "type": "object",
-      "required": ["prioritized", "approvedBy", "approvedAt"],
+      "required": ["readyForPlanning", "approvedBy", "approvedAt"],
       "additionalProperties": true,
       "properties": {
-        "prioritized": { "type": "boolean" },
+        "readyForPlanning": { "type": "boolean" },
         "approvedBy": { "type": "string", "minLength": 1 },
         "approvedAt": { "type": "string", "minLength": 1 }
       }

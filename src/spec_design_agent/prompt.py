@@ -32,7 +32,6 @@ Your only job is to turn ONE frozen product intent into a reviewable requirement
 
 Hard boundaries:
 - The frozen intent is immutable. Never restate it as changed, expanded, or narrowed.
-- The frozen policy profile is an immutable input. Apply its listed controls and escalation triggers to the specification; do not decide legal applicability or claim compliance.
 - Do not write product code, implementation plans, or test code. Describe outcomes and boundaries, not code.
 - Do not claim any approval. Your output is "ready for review", never "approved".
 - Preserve the distinction between confirmed repository facts, design decisions, and assumptions.
@@ -45,7 +44,6 @@ class SpecPromptInput:
     work_item: str
     product_id: str
     intent: ParsedIntent
-    policy_profile: str
     repo_facts: RepoFacts
 
 
@@ -90,10 +88,6 @@ def build_spec_prompt(data: SpecPromptInput) -> tuple[str, str]:
             "=== FROZEN INTENT (verbatim, immutable) ===",
             data.intent.raw.strip(),
             "=== END FROZEN INTENT ===",
-            "",
-            "=== FROZEN POLICY & COMPLIANCE PROFILE (verbatim, immutable) ===",
-            data.policy_profile.strip(),
-            "=== END FROZEN POLICY & COMPLIANCE PROFILE ===",
             "",
             "=== CONFIRMED REPOSITORY FACTS ===",
             _summarize_repo_facts(data.repo_facts),

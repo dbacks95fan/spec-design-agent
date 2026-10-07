@@ -9,13 +9,6 @@ def test_accepts_a_well_formed_request():
     assert parse_request(valid_request()).work_item == "INT-MF-0042"
 
 
-def test_requires_frozen_policy_profile():
-    bad = valid_request()
-    del bad["policyProfile"]
-    with pytest.raises(RequestValidationError):
-        parse_request(bad)
-
-
 def test_rejects_missing_required_fields():
     bad = valid_request()
     del bad["approval"]
@@ -39,7 +32,7 @@ def test_blocks_unsupported_request_version():
 
 def test_blocks_when_approval_absent():
     bad = valid_request()
-    bad["approval"]["prioritized"] = False
+    bad["approval"]["readyForPlanning"] = False
     with pytest.raises(PreconditionError) as exc:
         parse_request(bad)
     assert exc.value.code == "APPROVAL_MISSING"

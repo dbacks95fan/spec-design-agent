@@ -26,7 +26,6 @@ class CodexGenerator:
                 work_item=data.work_item,
                 product_id=data.product_id,
                 intent=data.intent,
-                policy_profile=data.policy_profile,
                 repo_facts=data.repo_facts,
             )
         )
