@@ -31,11 +31,11 @@ def check_request_preconditions(request: SpecRequest) -> None:
             f"Request version {request.request_version} is not supported; "
             f"this agent implements version {SUPPORTED_REQUEST_VERSION}",
         )
-    if request.approval.ready_for_planning is not True:
+    if request.approval.prioritized is not True:
         raise PreconditionError(
             "blocked",
             "APPROVAL_MISSING",
-            "Ready-for-Planning approval is not present on the request",
+            "A valid Prioritized freeze is not present on the request",
         )
     # Cross-field consistency: branch and frozen-intent path must both name this work
     # item, so a mis-routed request cannot start work.
@@ -50,6 +50,12 @@ def check_request_preconditions(request: SpecRequest) -> None:
             "blocked",
             "INTENT_PATH_MISMATCH",
             f"Intent path '{request.intent.path}' does not reference work item '{request.work_item}'",
+        )
+    if request.policy_profile.repository != request.intent.repository or request.policy_profile.commit != request.intent.commit:
+        raise PreconditionError(
+            "blocked",
+            "POLICY_PROFILE_SOURCE_MISMATCH",
+            "Frozen intent and policy profile must come from the same pinned intent-backlog repository commit",
         )
 
 

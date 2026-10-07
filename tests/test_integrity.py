@@ -1,7 +1,7 @@
 import pytest
 from conftest import FORTY_HEX, canonical_intent, sha256, valid_request, write_exact
 
-from spec_design_agent.integrity import sha256_file, sha256_text, verify_frozen_intent
+from spec_design_agent.integrity import sha256_file, sha256_text, verify_frozen_intent, verify_frozen_policy_profile
 from spec_design_agent.intent import parse_intent
 from spec_design_agent.types import PreconditionError, SpecRequest
 
@@ -66,3 +66,21 @@ def test_open_decisions_return_needs_decision():
     with pytest.raises(PreconditionError) as exc:
         verify_frozen_intent(_request_for(text), parse_intent(text), sha256_text(text))
     assert exc.value.code == "INTENT_OPEN_DECISIONS" and exc.value.status == "needs_decision"
+
+
+def test_verifies_frozen_policy_profile_identity_and_bytes(tmp_path):
+    profile = "Profile ID: MEALFLOW-DEFAULT\n\nVersion: 1\n"
+    path = tmp_path / "policy-profile.md"
+    write_exact(path, profile)
+    request = SpecRequest.from_dict(valid_request())
+    assert verify_frozen_policy_profile(request, path, sha256_text(profile)) == profile
+
+
+def test_blocks_mutated_policy_profile(tmp_path):
+    profile = "Profile ID: MEALFLOW-DEFAULT\n\nVersion: 1\n"
+    path = tmp_path / "policy-profile.md"
+    write_exact(path, profile)
+    request = SpecRequest.from_dict(valid_request())
+    with pytest.raises(PreconditionError) as exc:
+        verify_frozen_policy_profile(request, path, "f" * 64)
+    assert exc.value.code == "POLICY_PROFILE_MUTATED"

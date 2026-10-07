@@ -56,7 +56,7 @@ knobs (timeout, inspection bounds).
 
 ### What a run does
 
-1. Validate the request shape, then the Ready-for-Planning approval and identity consistency.
+1. Validate the request shape, then the Prioritized freeze and identity consistency.
 2. Verify the workspace is an isolated Git work tree on `work/<work-item>` based on the requested base commit.
 3. Verify the staged frozen `intent.md` byte-for-byte against `request.intent.frozenArtifactSha256`; carry `request.intent.contentSha256` through as provenance.
 4. Inspect the target repository read-only, within `SPEC_AGENT_*` bounds.

@@ -15,7 +15,7 @@ from . import git
 from .config import AgentConfig, load_config
 from .generators import create_generator
 from .generators.base import SpecGenerationInput, SpecGenerator
-from .integrity import verify_frozen_intent
+from .integrity import verify_frozen_intent, verify_frozen_policy_profile
 from .intent import read_intent_file
 from .logging_ import error_message, log
 from .prompt import PROMPT_VERSION
@@ -118,6 +118,7 @@ def run_spec_design(
                 status=status,
                 spec_version=provenance.get("spec_version"),
                 usage=provenance.get("usage"),
+                policy_versions=provenance.get("policy_versions", []),
             )
         return RunOutcome(result=result, run_record=run_record, exit_code=EXIT_CODES[status])
 
@@ -143,6 +144,11 @@ def run_spec_design(
 
         intent = read_intent_file(prepared.intent_path)
         verify_frozen_intent(request, intent, prepared.frozen_artifact_sha256)
+        policy_profile = verify_frozen_policy_profile(
+            request,
+            prepared.paths.root / prepared.paths.policy_profile_rel,
+            prepared.frozen_policy_profile_sha256,
+        )
 
         facts = inspect_repository(prepared.paths.root, cfg.inspection)
         gen = generator or create_generator(provider=cfg.provider, model=cfg.model)
@@ -153,6 +159,7 @@ def run_spec_design(
                     work_item=request.work_item,
                     product_id=request.product_id,
                     intent=intent,
+                    policy_profile=policy_profile,
                     repo_facts=facts,
                     repo_root=str(prepared.paths.root),
                     cancel=cancel,
@@ -166,6 +173,7 @@ def run_spec_design(
             "model": generated.model,
             "base_commit": prepared.head_commit,
             "usage": generated.usage.to_json() if generated.usage else None,
+            "policy_versions": [f"{request.policy_profile.profile_id}@{request.policy_profile.version}"],
         }
 
         if generated.human_decisions:

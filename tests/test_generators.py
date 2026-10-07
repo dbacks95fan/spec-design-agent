@@ -19,6 +19,7 @@ def _input():
         work_item="INT-MF-0042",
         product_id="MF",
         intent=parse_intent(canonical_intent()),
+        policy_profile="Profile ID: MEALFLOW-DEFAULT\nVersion: 1\n",
         repo_facts=FACTS,
         repo_root=".",
     )

@@ -49,7 +49,7 @@ def test_idempotent_replay_returns_same_result(staged_repo_and_request):
 
 def test_missing_approval_yields_blocked_not_exception(staged_repo_and_request):
     _root, request, _text, _path = staged_repo_and_request
-    request["approval"]["readyForPlanning"] = False
+    request["approval"]["prioritized"] = False
     outcome = run_spec_design(request, **_mock_deps())
     assert outcome.result.status == "blocked"
     assert outcome.exit_code == EXIT_CODES["blocked"]

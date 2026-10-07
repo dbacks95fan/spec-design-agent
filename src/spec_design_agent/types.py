@@ -9,7 +9,7 @@ from typing import Any, Literal
 SpecStatus = Literal["spec_ready", "needs_decision", "blocked", "failed"]
 
 # The request-contract version this build understands.
-SUPPORTED_REQUEST_VERSION = 1
+SUPPORTED_REQUEST_VERSION = 2
 
 
 @dataclass(frozen=True)
@@ -26,6 +26,16 @@ class IntentRef:
 
 
 @dataclass(frozen=True)
+class PolicyProfileRef:
+    repository: str
+    commit: str
+    path: str
+    profile_id: str
+    version: str
+    frozen_artifact_sha256: str
+
+
+@dataclass(frozen=True)
 class TargetRef:
     repository: str
     base_commit: str
@@ -35,7 +45,7 @@ class TargetRef:
 
 @dataclass(frozen=True)
 class Approval:
-    ready_for_planning: bool
+    prioritized: bool
     approved_by: str
     approved_at: str
 
@@ -46,9 +56,10 @@ class SpecRequest:
     work_item: str
     product_id: str
     intent: IntentRef
+    policy_profile: PolicyProfileRef
     target: TargetRef
     approval: Approval
-    request_version: int = 1
+    request_version: int = 2
 
     @staticmethod
     def from_dict(raw: dict[str, Any]) -> "SpecRequest":
@@ -63,6 +74,14 @@ class SpecRequest:
                 frozen_artifact_sha256=raw["intent"]["frozenArtifactSha256"],
                 content_sha256=raw["intent"]["contentSha256"],
             ),
+            policy_profile=PolicyProfileRef(
+                repository=raw["policyProfile"]["repository"],
+                commit=raw["policyProfile"]["commit"],
+                path=raw["policyProfile"]["path"],
+                profile_id=raw["policyProfile"]["profileId"],
+                version=raw["policyProfile"]["version"],
+                frozen_artifact_sha256=raw["policyProfile"]["frozenArtifactSha256"],
+            ),
             target=TargetRef(
                 repository=raw["target"]["repository"],
                 base_commit=raw["target"]["baseCommit"],
@@ -70,11 +89,11 @@ class SpecRequest:
                 workspace=raw["target"]["workspace"],
             ),
             approval=Approval(
-                ready_for_planning=bool(raw["approval"]["readyForPlanning"]),
+                prioritized=bool(raw["approval"]["prioritized"]),
                 approved_by=raw["approval"]["approvedBy"],
                 approved_at=raw["approval"]["approvedAt"],
             ),
-            request_version=int(raw.get("requestVersion", 1)),
+            request_version=int(raw["requestVersion"]),
         )
 
 

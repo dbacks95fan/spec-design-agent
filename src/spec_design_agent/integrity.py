@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import hashlib
+import re
 from pathlib import Path
 
 from .types import ParsedIntent, PreconditionError, SpecRequest
@@ -53,3 +54,17 @@ def verify_frozen_intent(request: SpecRequest, intent: ParsedIntent, workspace_i
             "INTENT_OPEN_DECISIONS",
             f"Frozen intent still carries {len(intent.open_decisions)} unresolved open decision(s)",
         )
+
+
+def verify_frozen_policy_profile(request: SpecRequest, profile_path: str | Path, workspace_profile_hash: str) -> str:
+    """Verify the staged profile's raw bytes and declared identity against the request."""
+    if workspace_profile_hash != request.policy_profile.frozen_artifact_sha256:
+        raise PreconditionError("blocked", "POLICY_PROFILE_MUTATED", "Frozen policy-profile raw-byte hash does not match the Conductor request")
+    text = Path(profile_path).read_text(encoding="utf-8")
+    profile_id = re.search(r"^Profile ID:\s*(.+?)\s*$", text, re.MULTILINE)
+    version = re.search(r"^Version:\s*(.+?)\s*$", text, re.MULTILINE)
+    if not profile_id or profile_id.group(1) != request.policy_profile.profile_id:
+        raise PreconditionError("blocked", "POLICY_PROFILE_IDENTITY_MISMATCH", "Frozen policy-profile ID does not match the Conductor request")
+    if not version or version.group(1) != request.policy_profile.version:
+        raise PreconditionError("blocked", "POLICY_PROFILE_VERSION_MISMATCH", "Frozen policy-profile version does not match the Conductor request")
+    return text

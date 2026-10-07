@@ -30,6 +30,7 @@ def test_assert_scoped_rejects_traversal_and_absolute_escape():
 def test_resolve_workspace_paths_places_artifacts_under_agent_work():
     paths = resolve_workspace_paths(SpecRequest.from_dict(valid_request()))
     assert paths.intent_rel == ".agent/work/INT-MF-0042/intent.md"
+    assert paths.policy_profile_rel == ".agent/work/INT-MF-0042/policy-profile.md"
     assert paths.spec_rel == ".agent/work/INT-MF-0042/spec.md"
 
 
@@ -41,11 +42,13 @@ def test_prepares_valid_workspace_and_stages_conductor_intent(tmp_path):
         {
             "README.md": "# fixture\n",
             "products/mealflow/intents/INT-MF-0042/intent.md": intent_text,
+            ".agent/work/INT-MF-0042/policy-profile.md": "Profile ID: MEALFLOW-DEFAULT\n\nVersion: 1\n",
         },
     )
     request = _req(baseCommit=base_commit, branch=branch, workspace=str(root))
     prepared = prepare_workspace(request)
     assert prepared.frozen_artifact_sha256 == sha256(intent_text)
+    assert prepared.frozen_policy_profile_sha256 == sha256("Profile ID: MEALFLOW-DEFAULT\n\nVersion: 1\n")
     assert prepared.head_commit == base_commit
 
 
@@ -80,6 +83,7 @@ def test_reuses_already_staged_intent(tmp_path):
     work_dir = root / ".agent/work/INT-MF-0042"
     work_dir.mkdir(parents=True)
     write_exact(work_dir / "intent.md", intent_text)
+    write_exact(work_dir / "policy-profile.md", "Profile ID: MEALFLOW-DEFAULT\n\nVersion: 1\n")
     request = _req(
         baseCommit=base_commit,
         branch=branch,

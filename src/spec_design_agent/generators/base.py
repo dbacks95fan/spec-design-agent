@@ -16,6 +16,7 @@ class SpecGenerationInput:
     work_item: str
     product_id: str
     intent: ParsedIntent
+    policy_profile: str
     repo_facts: RepoFacts
     repo_root: str
     # Cooperative cancellation for timeouts.
