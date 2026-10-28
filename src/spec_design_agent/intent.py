@@ -68,6 +68,7 @@ def parse_intent(raw: str) -> ParsedIntent:
         intent_id=intent_id,
         product_id=(str(data["product_id"]).strip() if data.get("product_id") else None),
         version=(raw_version if isinstance(raw_version, int) else None),
+        trello_card_id=(str(data["trello_card_id"]).strip() if data.get("trello_card_id") else None),
         status=str(data["status"]).strip(),
         open_decisions=_bullets(sections.get("open decisions")),
         acceptance_criteria=_bullets(sections.get("acceptance criteria")),

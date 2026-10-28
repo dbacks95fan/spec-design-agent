@@ -2,32 +2,29 @@
 
 ## Conductor boundary
 
-The Conductor owns workflow state, assignment, retries, concurrency, and Trello updates. This agent receives a bounded request and returns a bounded result. It does not poll Trello, select work, change priority, or trigger later stages.
+The Conductor owns lifecycle state, assignment, retries, concurrency, and Trello updates. It invokes this worker only after validating a card's transition into Spec & Design and its active Prioritized freeze. It does not delegate policy decisions or human acceptance to the agent.
+
+The Conductor maps canonical StageInvocation 1.1 into `schemas/spec-request.schema.json` version 2. The request preserves `invocation_id`, `trigger_event_id`, stage, full work identity, target commit, workspace reference, read/write permissions, and the complete typed `FreezeActivationEvent`. The frozen intent and policy profile are identified by the event's distinct `intent` and `policy_profile` ArtifactRefs; they are not inferred from list order or file names.
+
+The invocation runtime makes byte-preserving snapshots available at `.agent/inputs/<invocationId>/intent.md` and `.agent/inputs/<invocationId>/policy-profile.md`. The agent checks these snapshots against their ArtifactRef hashes, copies them into `.agent/work/<intent-id>/`, and reports the same invocation ID and work identity in its result. A mismatch blocks the stage. The Conductor rechecks that the freeze remains active before accepting the result.
 
 ```text
 Prioritized
-  -> Conductor validates frozen intent and policy profile
+  -> Conductor validates and records the freeze
   -> card enters Spec & Design and invokes this agent
-  -> agent produces spec.md and proposed work-contract.yaml
-  -> human accepts both while the card remains in Spec & Design
-  -> move into Execution invokes the Coding Agent
+  -> agent verifies both frozen inputs and produces spec.md + work-contract.yaml
+  -> product owner accepts or returns both artifacts in Spec & Design
+  -> accepted references are frozen; card enters Execution
 ```
 
-Stage names follow the canonical vocabulary in `agentic-sdlc/docs/WORKFLOW.md`
-(`Prioritized -> Spec & Design -> Execution`). The human review is a gate inside Spec & Design, not a separate board column.
+The human review is a gate inside Spec & Design, not another board column. `spec_ready` means ready for that decision and cannot advance the card.
 
-## Idempotency and retries
+## Result mapping
 
-`runId` identifies one execution attempt; `workItem` identifies the lifecycle. Repeating the same `runId` must safely return the existing terminal result or fail with an explicit conflict. A retry receives a new `runId`, retains the same frozen intent reference, and never overwrites an approved artifact without versioning it.
+`spec-result.schema.json` defines the agent response. It includes invocation correlation, work identity, stage-specific status, concerns and decision requests. On `spec_ready`, it includes the target commit, repository-relative path, and raw-byte SHA-256 for both output artifacts. The Conductor validates the response and maps those references to the canonical StageResult output artifact references; it records the separate Spec Acceptance Record only after the human accepts both artifacts.
 
-## Design Review
+## Idempotency and rework
 
-Design Review is performed by a human. The agent’s successful result means *ready
-for review*, not approved. Review feedback may revise `spec.md` while preserving
-the same frozen intent. If feedback changes outcome, scope, acceptance criteria,
-constraints, or assumptions materially, the agent returns `needs_decision` and the
-organization creates a new intent/work item.
+`runId` identifies one attempt; `invocationId` identifies the Conductor stage invocation; `workItem` identifies the lifecycle. Repeating the same `runId` returns the saved terminal result without regenerating output. A retry uses a new invocation/run ID and the same active freeze unless the Conductor has recorded a successor lifecycle. The agent cannot overwrite an accepted output; human review revisions receive a new spec version and commit while retaining the same frozen inputs.
 
-## Downstream planning handoff
-
-The agent creates a proposed `work-contract.yaml` alongside `spec.md`; it does not create a separate `plan.md`. The product owner accepts both artifacts before Execution. The Coding Agent validates those accepted references before making code changes.
+If review uncovers a material change to outcome, scope, acceptance criteria, policy applicability, architecture, or external contract, the agent returns `needs_decision`; the accountable human decides whether to create a new intent lifecycle. The agent does not infer rerun or out-of-order board behavior.

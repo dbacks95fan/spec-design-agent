@@ -42,11 +42,10 @@ def verify_frozen_intent(request: SpecRequest, intent: ParsedIntent, workspace_i
             "PRODUCT_MISMATCH",
             f"Frozen intent product '{intent.product_id}' does not match requested product '{request.product_id}'",
         )
-    # The intent's lifecycle status is deliberately not gated on. The freeze
-    # protocol remains documented in agentic-sdlc/docs/WORKFLOW.md, but a run is
-    # admitted on identity and byte integrity alone — the checks above, which are
-    # about "are these the exact bytes for the right intent", not "has the
-    # organisation committed to it yet".
+    if intent.version != request.freeze_activation.intent_version:
+        raise PreconditionError("blocked", "INTENT_VERSION_MISMATCH", "Frozen intent version does not match the Prioritized freeze record")
+    if intent.trello_card_id != request.freeze_activation.trello_card_id:
+        raise PreconditionError("blocked", "CARD_ID_MISMATCH", "Frozen intent card ID does not match the Prioritized freeze record")
     if intent.open_decisions:
         raise PreconditionError(
             "needs_decision",

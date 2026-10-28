@@ -3,108 +3,51 @@
 ## Workspace layout
 
 ```text
-.agent/work/INT-MF-0042/
-  intent.md
+.agent/inputs/<invocation-id>/
+  intent.md                 # source snapshot staged for the invocation; read-only
+  policy-profile.md         # source snapshot staged for the invocation; read-only
+.agent/work/<intent-id>/
+  intent.md                 # byte-identical frozen copy
+  policy-profile.md         # byte-identical frozen copy
   spec.md
   work-contract.yaml
   spec-run.json
-  spec-result.json
+  spec-result.json          # saved terminal result for idempotent replay
 ```
 
-`intent.md` is a byte-for-byte frozen input. The agent must not edit it.
-`spec-result.json` persists the last structured result so a retry with the same
-`runId` returns it without re-running (`INTEGRATION.md`, idempotency).
+The invocation input directory is supplied read-only. The agent writes only the assigned `.agent/work/<intent-id>/` directory and force-adds only the exact authorized artifact paths when committing. Repository ignore rules must not prevent durable outputs from being committed.
 
 ## `spec.md`
 
-Use this structure. Sections may be marked not relevant only when an explicit rationale is present.
+`spec.md` is the human-readable requirements, design, implementation, and validation plan. It has this frontmatter:
 
-```markdown
----
+```yaml
 work_item: INT-MF-0042
 product_id: MF
-intent_commit: <sha>
-frozen_artifact_sha256: <raw-byte hash of the frozen intent.md>
-intent_content_sha256: <normalized content hash, carried as provenance>
-base_commit: <sha>
+intent_commit: <source commit SHA>
+frozen_artifact_sha256: <raw-byte intent hash>
+policy_profile_id: MF-DEFAULT
+policy_profile_version: "1"
+policy_profile_sha256: <raw-byte profile hash>
+base_commit: <product repository base SHA>
 spec_version: 1
 status: draft
----
-
-# Requirements and Design Specification
-
-## Intent fidelity
-## Confirmed repository context
-## User and system-observable outcomes
-## Functional requirements and acceptance criteria
-## Non-functional requirements
-## Design and affected boundaries
-## Data, security, privacy, and compliance considerations
-## Implementation and validation plan
-## Error handling and operational behavior
-## Validation strategy
-## Dependencies, assumptions, and non-goals
-## Risks and unresolved decisions
-## Traceability to frozen intent
 ```
 
-The specification must distinguish confirmed facts from design decisions and assumptions. It must name affected boundaries and outcomes without prescribing product implementation code.
+The required H2 sections, in order, are: Intent fidelity; Confirmed repository context; User and system-observable outcomes; Functional requirements and acceptance criteria; Non-functional requirements; Design and affected boundaries; Data, security, privacy, and compliance considerations; Error handling and operational behavior; Validation strategy; Dependencies, assumptions, and non-goals; Risks and unresolved decisions; Traceability to frozen intent.
+
+The specification must distinguish confirmed facts, design decisions, and assumptions. It must refer to relevant product constitution and architecture sources when they materially shape the design. Tests are evidence, not proof of outcome delivery.
 
 ## `work-contract.yaml`
 
-This proposed execution record references the frozen intent, policy profile, `spec.md`, target repository/base revision, allowed scope, acceptance criteria, and required deterministic validation. It is derived from the reviewed specification and contains no independent product decision. The product owner freezes it with `spec.md` before Execution starts.
+This is the proposed machine-readable Work Contract v3. The canonical definition is [`WorkContract`](https://github.com/dbacks95fan/agentic-sdlc/blob/main/schemas/lifecycle-contracts.schema.json#L215); this project bundles [`work-contract.schema.json`](../schemas/work-contract.schema.json) as a local validation copy. The canonical SDLC schema remains authoritative and the local copy must be kept synchronized.
+
+The contract binds the exact work item, frozen intent and policy-profile references, target repository/base commit, acceptance criteria, included/excluded scope, required deterministic validation, policy controls/evidence, and release/observation requirements. Identity and immutable references come from the freeze event and request; the agent does not let generated prose alter them. The product owner accepts the Work Contract together with `spec.md` before Execution. Do not create `plan.md`.
 
 ## `spec-run.json`
 
-```json
-{
-  "runId": "uuid",
-  "workItem": "INT-MF-0042",
-  "productId": "MF",
-  "intentCommit": "full-git-sha",
-  "frozenArtifactSha256": "sha256",
-  "intentContentSha256": "sha256",
-  "baseCommit": "full-git-sha",
-  "branch": "work/INT-MF-0042",
-  "modelProvider": "configured-provider",
-  "model": "configured-model",
-  "agentVersion": "version",
-  "promptVersion": "version-or-commit",
-  "policyVersions": [],
-  "startedAt": "RFC-3339 timestamp",
-  "completedAt": "RFC-3339 timestamp",
-  "status": "spec_ready",
-  "specVersion": 1
-}
-```
-
-`specVersion` is present when `status` is `spec_ready`.
-
-Never store secrets, credentials, private chain-of-thought, or raw sensitive content in this record.
+The run record is validated against [`spec-run.schema.json`](../schemas/spec-run.schema.json) and records invocation provenance, work identity, both frozen input hashes and profile identity/version, target commit/branch, model/provider and prompt versions, timestamps, status, output version, and available usage. It must not contain secrets, credentials, raw sensitive content, or private model reasoning.
 
 ## Structured result
 
-```json
-{
-  "runId": "uuid",
-  "workItem": "INT-MF-0042",
-  "status": "spec_ready",
-  "summary": "Short factual summary",
-  "branch": "work/INT-MF-0042",
-  "workspace": "assigned workspace reference",
-  "intentCommit": "full-git-sha",
-  "frozenArtifactSha256": "sha256",
-  "intentContentSha256": "sha256",
-  "specCommit": "full-git-sha",
-  "specPath": ".agent/work/INT-MF-0042/spec.md",
-  "specVersion": 1,
-  "blockingConcerns": [],
-  "nonBlockingConcerns": [],
-  "humanDecisions": []
-}
-```
-
-`humanDecisions` contains only specific, material decisions, each shaped
-`{question, impact, options?, minimumAuthority}` per `OPERATING_CONTRACT.md`
-"Decision handling". A `spec_ready` result has no unresolved blocking decision and
-carries `specCommit`, `specPath`, and `specVersion`.
+The response is validated against [`spec-result.schema.json`](../schemas/spec-result.schema.json). It repeats the invocation ID, triggering event, stage, and full work identity so the Conductor can correlate it. `spec_ready` requires one commit SHA, path, and raw-byte SHA-256 for each of `spec.md` and `work-contract.yaml`, plus the spec version. Other statuses include a concise summary and blocking concerns or specific human decisions as appropriate. The Conductor remains responsible for mapping successful output references into its canonical StageResult and recording human acceptance.

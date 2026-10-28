@@ -1,5 +1,5 @@
 import pytest
-from conftest import canonical_intent
+from conftest import PROFILE_TEXT, canonical_intent, valid_request
 
 from spec_design_agent.generators import create_generator
 from spec_design_agent.generators.base import SpecGenerationInput, TokenUsage
@@ -7,9 +7,11 @@ from spec_design_agent.generators.claude import DEFAULT_MODEL, ClaudeGenerator, 
 from spec_design_agent.generators.mock import MockGenerator
 from spec_design_agent.generators.parse import decode_generator_output
 from spec_design_agent.intent import parse_intent
+from spec_design_agent.policy_profile import parse_policy_profile
 from spec_design_agent.prompt import SPEC_SECTIONS
 from spec_design_agent.repo_inspect import RepoFacts
 from spec_design_agent.types import HumanDecision
+from spec_design_agent.types import SpecRequest
 
 FACTS = RepoFacts(top_level_entries=["src/"], language_histogram={".py": 3}, files_scanned=3)
 
@@ -19,6 +21,7 @@ def _input():
         work_item="INT-MF-0042",
         product_id="MF",
         intent=parse_intent(canonical_intent()),
+        policy_profile=parse_policy_profile(PROFILE_TEXT, SpecRequest.from_dict(valid_request())),
         repo_facts=FACTS,
         repo_root=".",
     )
@@ -63,8 +66,8 @@ def test_decode_recognises_fenced_needs_decision_block():
     assert out.spec_body == ""
 
 
-def test_decode_strips_frontmatter_and_fences_from_spec_body():
-    raw = "```markdown\n---\nwork_item: X\n---\n## Intent fidelity\n\ntext\n```"
+def test_decode_reads_json_spec_body():
+    raw = '```json\n{"specMarkdown":"## Intent fidelity\\n\\ntext"}\n```'
     out = decode_generator_output(raw, "codex", "gpt-5-codex")
     assert out.human_decisions == []
     assert out.spec_body.startswith("## Intent fidelity")
@@ -137,7 +140,7 @@ def test_claude_generator_defaults_to_opus(monkeypatch):
 
 def test_decode_generator_output_carries_usage_through():
     usage = TokenUsage(input_tokens=1, output_tokens=2)
-    out = decode_generator_output("## Intent fidelity\n\nbody", "claude", "claude-opus-5", usage)
+    out = decode_generator_output('{"specMarkdown":"## Intent fidelity\\n\\nbody"}', "claude", "claude-opus-5", usage)
     assert out.usage is usage
     decision = decode_generator_output(
         '```json\n{"needsDecision":[{"question":"q","impact":"i","minimumAuthority":"a"}]}\n```',

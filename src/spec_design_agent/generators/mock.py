@@ -41,7 +41,7 @@ def _section_body(name: str, data: SpecGenerationInput) -> str:
                 "No new external contracts are introduced."
             )
         case "Data, security, privacy, and compliance considerations":
-            return "No new personal-data categories are introduced. Existing authorization boundaries are preserved."
+            return "The frozen policy profile is reviewed for relevant controls. No legal applicability or compliance conclusion is inferred."
         case "Error handling and operational behavior":
             return (
                 "Failures surface a user-visible error and are logged with correlation context; "

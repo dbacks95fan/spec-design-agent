@@ -2,7 +2,7 @@
 [project]
 name = "spec-design-agent"
 version = "0.1.0"
-description = "Stateless Spec & Design Agent: turns one frozen product intent into a reviewable spec.md, a run record, and a structured result for the Conductor and human Design Review."
+description = "Stateless Spec & Design Agent: turns one frozen product intent into reviewable specification artifacts for human acceptance and Conductor handoff."
 readme = "README.md"
 requires-python = ">=3.12"
 license = { text = "MIT" }

@@ -15,28 +15,33 @@ class SpecFrontmatter:
     product_id: str
     intent_commit: str
     frozen_artifact_sha256: str
-    intent_content_sha256: str
+    policy_profile_id: str
+    policy_profile_version: str
+    policy_profile_sha256: str
+    intent_content_sha256: str | None
     base_commit: str
     spec_version: int
     status: str = "draft"
 
 
 def assemble_spec(body: str, fm: SpecFrontmatter) -> str:
-    yaml_block = "\n".join(
-        [
+    fields = [
             "---",
             f"work_item: {fm.work_item}",
             f"product_id: {fm.product_id}",
             f"intent_commit: {fm.intent_commit}",
             f"frozen_artifact_sha256: {fm.frozen_artifact_sha256}",
-            f"intent_content_sha256: {fm.intent_content_sha256}",
+            f"policy_profile_id: {fm.policy_profile_id}",
+            f"policy_profile_version: {fm.policy_profile_version}",
+            f"policy_profile_sha256: {fm.policy_profile_sha256}",
             f"base_commit: {fm.base_commit}",
             f"spec_version: {fm.spec_version}",
             f"status: {fm.status}",
-            "---",
-            "",
-        ]
-    )
+    ]
+    if fm.intent_content_sha256 is not None:
+        fields.insert(6, f"intent_content_sha256: {fm.intent_content_sha256}")
+    fields.extend(["---", ""])
+    yaml_block = "\n".join(fields)
     return f"{yaml_block}{body.strip()}\n"
 
 

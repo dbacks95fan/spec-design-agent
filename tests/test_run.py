@@ -26,6 +26,9 @@ def test_happy_path_commits_spec_and_returns_spec_ready(staged_repo_and_request)
     assert outcome.result.status == "spec_ready"
     assert outcome.exit_code == 0
     assert outcome.result.spec_path == ".agent/work/INT-MF-0042/spec.md"
+    assert outcome.result.spec_sha256 == sha256((root / ".agent/work/INT-MF-0042/spec.md").read_text(encoding="utf-8"))
+    assert outcome.result.work_contract_path == ".agent/work/INT-MF-0042/work-contract.yaml"
+    assert outcome.result.work_contract_sha256 == sha256((root / ".agent/work/INT-MF-0042/work-contract.yaml").read_text(encoding="utf-8"))
     assert outcome.result.spec_commit and len(outcome.result.spec_commit) == 40
     assert outcome.run_record.status == "spec_ready"
 
@@ -36,7 +39,7 @@ def test_happy_path_commits_spec_and_returns_spec_ready(staged_repo_and_request)
     json.loads((work_dir / "spec-run.json").read_text(encoding="utf-8"))
     json.loads((work_dir / "spec-result.json").read_text(encoding="utf-8"))
 
-    assert "spec(INT-MF-0042): spec v1 ready for Design Review" in _git(root, ["log", "-1", "--pretty=%s"])
+    assert "spec(INT-MF-0042): spec v1 and Work Contract ready for human acceptance" in _git(root, ["log", "-1", "--pretty=%s"])
 
 
 def test_idempotent_replay_returns_same_result(staged_repo_and_request):
@@ -47,18 +50,18 @@ def test_idempotent_replay_returns_same_result(staged_repo_and_request):
     assert second.run_record is None
 
 
-def test_missing_approval_yields_blocked_not_exception(staged_repo_and_request):
+def test_missing_policy_profile_snapshot_yields_blocked_not_exception(staged_repo_and_request):
     _root, request, _text, _path = staged_repo_and_request
-    request["approval"]["readyForPlanning"] = False
+    (_root / ".agent/inputs/invoke-INT-MF-0042/policy-profile.md").unlink()
     outcome = run_spec_design(request, **_mock_deps())
     assert outcome.result.status == "blocked"
     assert outcome.exit_code == EXIT_CODES["blocked"]
-    assert "APPROVAL_MISSING" in " ".join(outcome.result.blocking_concerns)
+    assert "POLICY_PROFILE_NOT_STAGED" in " ".join(outcome.result.blocking_concerns)
 
 
 def test_intent_hash_mismatch_blocks(staged_repo_and_request):
     _root, request, _text, _path = staged_repo_and_request
-    request["intent"]["frozenArtifactSha256"] = "f" * 64
+    request["freezeActivation"]["intent"]["sha256"] = "f" * 64
     outcome = run_spec_design(request, **_mock_deps())
     assert outcome.result.status == "blocked"
     assert "INTENT_MUTATED" in " ".join(outcome.result.blocking_concerns)
@@ -67,8 +70,8 @@ def test_intent_hash_mismatch_blocks(staged_repo_and_request):
 def test_open_decisions_surface_as_needs_decision(staged_repo_and_request):
     root, request, _text, path = staged_repo_and_request
     mutated = canonical_intent(intent_id="INT-MF-0042", open_decisions=["Which CSV delimiter?"])
-    write_exact(root / path, mutated)
-    request["intent"]["frozenArtifactSha256"] = sha256(mutated)
+    write_exact(root / ".agent/inputs/invoke-INT-MF-0042/intent.md", mutated)
+    request["freezeActivation"]["intent"]["sha256"] = sha256(mutated)
     outcome = run_spec_design(request, **_mock_deps())
     assert outcome.result.status == "needs_decision"
     assert outcome.exit_code == EXIT_CODES["needs_decision"]
@@ -119,7 +122,7 @@ def test_generation_timeout_yields_failed(staged_repo_and_request):
 
 def test_invalid_request_shape_raises_to_caller(staged_repo_and_request):
     _root, request, _text, _path = staged_repo_and_request
-    del request["approval"]
+    del request["freezeActivation"]
     try:
         run_spec_design(request, **_mock_deps())
         assert False, "expected RequestValidationError"

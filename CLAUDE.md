@@ -27,8 +27,9 @@ Keep this file short and vendor-specific. Shared decisions belong in `docs/`.
 - TDD: write or update a failing test before the implementation change; keep the
   suite green. `uv run pytest` must pass with pristine output.
 - Preserve the narrow boundary: validate an immutable intent, produce reviewable
-  specification artifacts, stop at human Design Review. Never implement product
-  code, move Trello cards, approve a design, or mutate the frozen intent.
+  specification artifacts for human acceptance inside Spec & Design. Never
+  implement product code, move Trello cards, approve its own outputs, or mutate
+  frozen inputs.
 - A material decision (behavior, architecture, security, compliance, data
   semantics, destructive action, external contract, cost, scope) is `needs_decision`,
   never a guess.

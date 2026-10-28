@@ -8,6 +8,7 @@ from dataclasses import dataclass, field
 from typing import Protocol
 
 from ..repo_inspect import RepoFacts
+from ..policy_profile import ParsedPolicyProfile
 from ..types import HumanDecision, ParsedIntent
 
 
@@ -16,6 +17,7 @@ class SpecGenerationInput:
     work_item: str
     product_id: str
     intent: ParsedIntent
+    policy_profile: ParsedPolicyProfile
     repo_facts: RepoFacts
     repo_root: str
     # Cooperative cancellation for timeouts.

@@ -1,9 +1,11 @@
-from conftest import canonical_intent
+from conftest import PROFILE_TEXT, canonical_intent, valid_request
 
 from spec_design_agent.generators.base import SpecGenerationInput
 from spec_design_agent.generators.mock import MockGenerator
 from spec_design_agent.intent import parse_intent
+from spec_design_agent.policy_profile import parse_policy_profile
 from spec_design_agent.repo_inspect import RepoFacts
+from spec_design_agent.types import SpecRequest
 from spec_design_agent.spec import SpecFrontmatter, assemble_spec, validate_spec
 
 FM = SpecFrontmatter(
@@ -11,6 +13,9 @@ FM = SpecFrontmatter(
     product_id="MF",
     intent_commit="a" * 40,
     frozen_artifact_sha256="b" * 64,
+    policy_profile_id="MF-DEFAULT",
+    policy_profile_version="1",
+    policy_profile_sha256="d" * 64,
     intent_content_sha256="e" * 64,
     base_commit="c" * 40,
     spec_version=1,
@@ -22,6 +27,7 @@ def _gen_input():
         work_item="INT-MF-0042",
         product_id="MF",
         intent=parse_intent(canonical_intent()),
+        policy_profile=parse_policy_profile(PROFILE_TEXT, SpecRequest.from_dict(valid_request())),
         repo_facts=RepoFacts(),
         repo_root=".",
     )

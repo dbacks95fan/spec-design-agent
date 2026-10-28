@@ -16,19 +16,28 @@ from .types import PreconditionError, SpecRequest
 class WorkspacePaths:
     root: Path
     work_dir: Path
+    intent_input: Path
+    policy_profile_input: Path
     intent_rel: str
+    policy_profile_rel: str
     spec_rel: str
+    work_contract_rel: str
     run_rel: str
 
 
 def resolve_workspace_paths(request: SpecRequest) -> WorkspacePaths:
     root = Path(request.target.workspace).resolve()
     work_rel = Path(".agent") / "work" / request.work_item
+    input_rel = Path(".agent") / "inputs" / request.invocation_id
     return WorkspacePaths(
         root=root,
         work_dir=root / work_rel,
+        intent_input=root / input_rel / "intent.md",
+        policy_profile_input=root / input_rel / "policy-profile.md",
         intent_rel=(work_rel / "intent.md").as_posix(),
+        policy_profile_rel=(work_rel / "policy-profile.md").as_posix(),
         spec_rel=(work_rel / "spec.md").as_posix(),
+        work_contract_rel=(work_rel / "work-contract.yaml").as_posix(),
         run_rel=(work_rel / "spec-run.json").as_posix(),
     )
 
@@ -50,13 +59,14 @@ def assert_scoped(root: Path, candidate: str) -> Path:
 class PreparedWorkspace:
     paths: WorkspacePaths
     intent_path: Path
-    # SHA-256 of the raw bytes of the staged frozen intent.md (the frozen-artifact hash).
-    frozen_artifact_sha256: str
+    policy_profile_path: Path
+    intent_sha256: str
+    policy_profile_sha256: str
     head_commit: str
 
 
 def prepare_workspace(request: SpecRequest) -> PreparedWorkspace:
-    """Confirm workspace isolation and ensure a byte-identical frozen intent is staged."""
+    """Confirm the assigned worktree and copy both frozen snapshots byte-for-byte."""
     paths = resolve_workspace_paths(request)
 
     if not paths.root.exists():
@@ -82,27 +92,30 @@ def prepare_workspace(request: SpecRequest) -> PreparedWorkspace:
 
     paths.work_dir.mkdir(parents=True, exist_ok=True)
     staged_intent = paths.work_dir / "intent.md"
+    staged_profile = paths.work_dir / "policy-profile.md"
+    if not paths.intent_input.is_file():
+        raise PreconditionError("blocked", "INTENT_NOT_STAGED", "The invocation has no staged frozen intent snapshot")
+    if not paths.policy_profile_input.is_file():
+        raise PreconditionError("blocked", "POLICY_PROFILE_NOT_STAGED", "The invocation has no staged frozen policy-profile snapshot")
 
-    data: bytes | None = None
-    if staged_intent.exists():
-        data = staged_intent.read_bytes()
-    else:
-        conductor_copy = assert_scoped(paths.root, request.intent.path)
-        if conductor_copy.exists():
-            data = conductor_copy.read_bytes()
-            staged_intent.write_bytes(data)
+    intent_data = paths.intent_input.read_bytes()
+    profile_data = paths.policy_profile_input.read_bytes()
+    intent_hash = sha256_bytes(intent_data)
+    profile_hash = sha256_bytes(profile_data)
+    if intent_hash != request.intent.frozen_artifact_sha256:
+        raise PreconditionError("blocked", "INTENT_MUTATED", "Staged frozen intent bytes do not match the Prioritized freeze record")
+    if profile_hash != request.policy_profile.frozen_artifact_sha256:
+        raise PreconditionError("blocked", "POLICY_PROFILE_MUTATED", "Staged policy-profile bytes do not match the Prioritized freeze record")
 
-    if data is None:
-        raise PreconditionError(
-            "blocked",
-            "INTENT_NOT_STAGED",
-            "No frozen intent is available in the workspace; the Conductor must stage intent.md before Spec & Design",
-        )
+    staged_intent.write_bytes(intent_data)
+    staged_profile.write_bytes(profile_data)
 
     return PreparedWorkspace(
         paths=paths,
         intent_path=staged_intent,
-        frozen_artifact_sha256=sha256_bytes(data),
+        intent_sha256=intent_hash,
+        policy_profile_sha256=profile_hash,
+        policy_profile_path=staged_profile,
         head_commit=head,
     )
 

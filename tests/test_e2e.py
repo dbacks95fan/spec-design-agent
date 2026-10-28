@@ -36,27 +36,31 @@ def test_e2e_conductor_request_produces_committed_spec(staged_repo_and_request):
     assert code == 0
     assert result["status"] == "spec_ready"
     assert result["specCommit"]
+    assert result["specSha256"]
+    assert result["workContractPath"].endswith("work-contract.yaml")
+    assert result["workContractSha256"]
 
     work_dir = root / ".agent/work/INT-MF-0042"
     assert "## Traceability to frozen intent" in (work_dir / "spec.md").read_text(encoding="utf-8")
     record = json.loads((work_dir / "spec-run.json").read_text(encoding="utf-8"))
     assert record["status"] == "spec_ready" and record["agentVersion"]
+    assert (work_dir / "work-contract.yaml").is_file()
 
     show = subprocess.run(["git", "show", "--stat", "HEAD"], cwd=str(root), capture_output=True, text=True, check=True)
     assert "spec.md" in show.stdout
 
 
-def test_e2e_missing_approval_exits_20(staged_repo_and_request):
+def test_e2e_missing_policy_profile_snapshot_exits_20(staged_repo_and_request):
     root, request, _text, _path = staged_repo_and_request
-    request["approval"]["readyForPlanning"] = False
+    (root / ".agent/inputs/invoke-INT-MF-0042/policy-profile.md").unlink()
     code, result, _stderr = _invoke(_write(root, request))
     assert code == 20
     assert result["status"] == "blocked"
 
 
 def test_e2e_mutated_intent_exits_20(staged_repo_and_request):
-    root, request, _text, path = staged_repo_and_request
-    write_exact(root / path, canonical_intent(intent_id="INT-MF-0042") + "\n<!-- tampered -->\n")
+    root, request, _text, _path = staged_repo_and_request
+    write_exact(root / ".agent/inputs/invoke-INT-MF-0042/intent.md", canonical_intent(intent_id="INT-MF-0042") + "\n<!-- tampered -->\n")
     code, result, _stderr = _invoke(_write(root, request))
     assert code == 20
     assert result["status"] == "blocked"
@@ -67,7 +71,8 @@ def test_e2e_ambiguous_requirement_exits_10(staged_repo_and_request):
     root, request, _text, path = staged_repo_and_request
     ambiguous = canonical_intent(intent_id="INT-MF-0042", open_decisions=["Which delimiter does finance require?"])
     write_exact(root / path, ambiguous)
-    request["intent"]["frozenArtifactSha256"] = sha256(ambiguous)
+    request["freezeActivation"]["intent"]["sha256"] = sha256(ambiguous)
+    write_exact(root / ".agent/inputs/invoke-INT-MF-0042/intent.md", ambiguous)
     code, result, _stderr = _invoke(_write(root, request))
     assert code == 10
     assert result["status"] == "needs_decision"

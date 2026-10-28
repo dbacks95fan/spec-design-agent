@@ -5,14 +5,14 @@
 - This is a standalone, stateless agent repository.
 - It produces specification/design artifacts only; implementation planning and coding are later roles.
 - The frozen intent revision and the freeze-tuple hashes are mandatory execution inputs.
-- The Conductor owns workflow/Trello state; Design Review (performed by a human) remains a gate.
+- The Conductor owns workflow/Trello state; human acceptance of `spec.md` and `work-contract.yaml` is a gate within the Spec & Design column, not a separate board column.
 - The current operating model uses a Claude-oriented Coding Agent and Codex-oriented Evaluator; this agent’s own model provider remains configurable.
 
 ### Cross-component contracts honored (`agentic-sdlc/docs/CONTRACT_DECISIONS.md`, ratified `f6f1724`)
 
 - **Canonical intent schema:** the sole canonical `intent.md` format is the Intent Creation Skill's `references/output-format.md`. This agent references it and does not parse a local variant.
 - **Two-hash freeze tuple:** the request carries `intent.frozenArtifactSha256` (raw bytes — verified here) and `intent.contentSha256` (normalized rendering — carried as provenance into `spec-run.json` and `spec.md` frontmatter, not verified). Field names track `agentic-sdlc/docs/ARTIFACTS.md`.
-- **Workflow vocabulary:** stage names follow `agentic-sdlc/docs/WORKFLOW.md` (`Design Review`, `Implementation Planning`, `Ready for Build`, `Coding`, `Evaluation`, `Ready for Release`).
+- **Workflow vocabulary:** stage names follow `agentic-sdlc/docs/WORKFLOW.md` (`Spec & Design`, `Execution`, `Evaluation`, `Human Approval`, `Release`, and `Production Observation`). The spec contains the human-readable implementation and validation plan; the Work Contract is its machine-readable execution record.
 - **Deployment:** no blanket container mandate. Runtime selection is this agent's decision, subject to bounded execution, least privilege, observability, and verified operational health.
 
 ### Agent-specific decisions (see `docs/adr/0001-runtime-technology.md`)
@@ -23,6 +23,7 @@
 - **Model provider:** provider-neutral `SpecGenerator` seam with `claude`, `codex`, and `mock` implementations selected by `SPEC_AGENT_PROVIDER`; `claude-agent-sdk` is an optional extra.
 - **Schema library:** `jsonschema` (draft-07).
 - **Intent staging:** the agent consumes an already-staged frozen `intent.md`; it does not clone the intent-backlog repository. Absent staging returns `blocked` / `INTENT_NOT_STAGED`.
+- **Workspace provisioning:** this implementation verifies an already-assigned isolated branch/worktree; it does not create one. The canonical SDLC assigns isolation creation to the first engineering worker, so invocation/runtime integration must close this gap before full conformance can be claimed.
 - **Git:** required on `PATH` for workspace verification and the single agent-owned artifact commit; commits are made without `--no-verify`.
 - **Exit codes:** `0` spec_ready, `10` needs_decision, `20` blocked, `30` failed, `2` usage, `1` internal.
 - **Extra artifact:** `spec-result.json` is persisted alongside `spec-run.json` to support `runId` idempotency and audit.

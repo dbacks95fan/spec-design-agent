@@ -1,8 +1,8 @@
 # Spec & Design Agent
 
-A stateless engineering worker for an intent-driven Agentic SDLC. It turns one frozen product intent into a reviewable `spec.md`, a run record, and a structured result for the Conductor and Design Review (performed by a human).
+A stateless engineering worker invoked when a card enters **Spec & Design** after the Conductor records the Prioritized freeze. It verifies the frozen intent and policy profile, then produces `spec.md` and a proposed Work Contract v3 for human acceptance while the card remains in Spec & Design.
 
-It is not a coding agent, workflow orchestrator, evaluator, or release agent. It must not change the frozen intent, bypass Design Review, or move Trello cards.
+It is not a coding agent, workflow orchestrator, evaluator, or release agent. It must not change frozen inputs, write product code, approve its own outputs, or move Trello cards.
 
 ## Contract documents
 
@@ -46,7 +46,7 @@ knobs (timeout, inspection bounds).
 ### Exit codes
 
 ```text
-0   spec_ready       spec.md committed to the work branch, ready for Design Review
+0   spec_ready       spec.md and Work Contract v3 committed, ready for human acceptance
 10  needs_decision   a material decision is missing (see result.humanDecisions)
 20  blocked          an input / integrity / access / environment precondition failed
 30  failed           an unexpected execution failure occurred
@@ -56,14 +56,14 @@ knobs (timeout, inspection bounds).
 
 ### What a run does
 
-1. Validate the request shape, then the Ready-for-Planning approval and identity consistency.
-2. Verify the workspace is an isolated Git work tree on `work/<work-item>` based on the requested base commit.
-3. Verify the staged frozen `intent.md` byte-for-byte against `request.intent.frozenArtifactSha256`; carry `request.intent.contentSha256` through as provenance.
-4. Inspect the target repository read-only, within `SPEC_AGENT_*` bounds.
-5. Generate `spec.md` via the configured provider; a material decision returns `needs_decision` with no commit.
-6. Validate `spec.md` structurally (all required sections, no unresolved markers), write `spec-run.json` and `spec-result.json`, and commit `.agent/work/<work-item>/` on the work branch.
+1. Validate request version, Spec & Design stage, work identity, and the embedded Prioritized freeze event. No separate Ready-for-Planning approval is accepted.
+2. Verify the isolated worktree, work branch, and requested base commit.
+3. Verify the raw bytes of both frozen input snapshots against their `ArtifactRef` hashes, then copy them into `.agent/work/<work-item>/`.
+4. Read repository instructions, the product constitution and architecture, and bounded repository facts without changing product files.
+5. Generate `spec.md`; build Work Contract v3 from the verified intent, policy profile, and repository-declared validation commands. A material unresolved decision returns `needs_decision`.
+6. Validate both outputs against their contracts, record provenance, and commit the frozen copies, `spec.md`, `work-contract.yaml`, and `spec-run.json` on the work branch. The result returns invocation identity plus commit, path, and hash references for both outputs.
 
-Repeating a request with the same `runId` returns the existing terminal result without re-running.
+Repeating a request with the same `runId` returns the existing terminal result without re-running. `schemas/work-contract.schema.json` is a local validation copy; `agentic-sdlc/schemas/lifecycle-contracts.schema.json` remains authoritative.
 
 ## Container
 
@@ -81,6 +81,8 @@ Conductor mounts the isolated work-item workspace at `/work`.
 ## Status
 
 The agent contract and a Python runtime implementation are in place, with unit,
-integration, and end-to-end tests using the deterministic `mock` provider. A live
+integration, and end-to-end tests using the deterministic `mock` provider. The current
+implementation verifies an assigned worktree but does not provision it; workspace
+creation remains an integration gap against the canonical SDLC. A live
 `claude` / `codex` end-to-end run against a real repository has not been exercised
 here and remains a deployment-verification step.

@@ -6,14 +6,22 @@
   "type": "object",
   "required": [
     "runId",
+    "invocationId",
+    "triggerEventId",
+    "stage",
     "workItem",
+    "productId",
+    "intentVersion",
+    "trelloCardId",
     "status",
     "summary",
     "branch",
     "workspace",
     "intentCommit",
     "frozenArtifactSha256",
-    "intentContentSha256",
+    "policyProfileId",
+    "policyProfileVersion",
+    "policyProfileSha256",
     "blockingConcerns",
     "nonBlockingConcerns",
     "humanDecisions"
@@ -24,10 +32,16 @@
       "type": "string",
       "minLength": 1
     },
+    "invocationId": { "type": "string", "minLength": 1 },
+    "triggerEventId": { "type": "string", "minLength": 1 },
+    "stage": { "const": "spec_design" },
     "workItem": {
       "type": "string",
       "minLength": 1
     },
+    "productId": { "type": "string", "minLength": 1 },
+    "intentVersion": { "type": "integer", "minimum": 1 },
+    "trelloCardId": { "type": "string", "minLength": 1 },
     "status": {
       "description": "spec_ready: reviewable spec committed. needs_decision: a material decision is missing. blocked: an input/integrity/access/environment precondition failed. failed: an unexpected execution failure occurred.",
       "type": "string",
@@ -59,6 +73,9 @@
       "type": "string",
       "pattern": "^[0-9a-f]{64}$"
     },
+    "policyProfileId": { "type": "string", "minLength": 1 },
+    "policyProfileVersion": { "type": "string", "minLength": 1 },
+    "policyProfileSha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
     "intentContentSha256": {
       "description": "Normalized content hash carried from the freeze tuple as provenance.",
       "type": "string",
@@ -74,13 +91,16 @@
       "type": "string",
       "minLength": 1
     },
+    "specSha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
     "specVersion": {
       "description": "Integer spec revision. Present only when status is spec_ready.",
       "type": "integer",
       "minimum": 1
     },
+    "workContractPath": { "type": "string", "minLength": 1 },
+    "workContractSha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
     "blockingConcerns": {
-      "description": "Concerns that prevent Design Review. Non-empty implies status is not spec_ready.",
+      "description": "Concerns that prevent human acceptance in Spec & Design. Non-empty implies status is not spec_ready.",
       "type": "array",
       "items": {
         "type": "string",
@@ -88,7 +108,7 @@
       }
     },
     "nonBlockingConcerns": {
-      "description": "Concerns a human reviewer should see but which do not block routing to Design Review.",
+      "description": "Concerns a human reviewer should see but which do not block routing to human acceptance in Spec & Design.",
       "type": "array",
       "items": {
         "type": "string",
@@ -187,7 +207,10 @@
         "required": [
           "specCommit",
           "specPath",
-          "specVersion"
+          "specSha256",
+          "specVersion",
+          "workContractPath",
+          "workContractSha256"
         ],
         "properties": {
           "blockingConcerns": {

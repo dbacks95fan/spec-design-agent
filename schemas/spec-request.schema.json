@@ -2,74 +2,70 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://github.com/dbacks95fan/spec-design-agent/schemas/spec-request.schema.json",
   "title": "Spec & Design Agent work request",
-  "description": "Bounded request supplied by the Conductor after Ready for Planning. See docs/OPERATING_CONTRACT.md and docs/INTEGRATION.md.",
+  "description": "Agent-specific adapter for an Agentic SDLC StageInvocation 1.1. The Prioritized freeze record is authoritative for frozen intent and policy-profile references.",
   "type": "object",
-  "required": ["runId", "workItem", "productId", "intent", "target", "approval"],
-  "additionalProperties": true,
+  "required": ["requestVersion", "runId", "invocationId", "triggerEventId", "stage", "workItem", "productId", "freezeActivation", "target", "readPaths", "writePaths"],
+  "additionalProperties": false,
   "properties": {
-    "requestVersion": {
-      "description": "Optional versioned request contract identifier. Absent means version 1.",
-      "type": "integer",
-      "minimum": 1
-    },
-    "runId": {
-      "description": "Identifies one execution attempt for idempotency.",
-      "type": "string",
-      "minLength": 1
-    },
-    "workItem": {
-      "description": "Product-prefixed intent/work-item identifier, e.g. INT-MF-0042.",
-      "type": "string",
-      "pattern": "^[A-Za-z][A-Za-z0-9]*(?:-[A-Za-z0-9]+)+$"
-    },
-    "productId": {
-      "type": "string",
-      "pattern": "^[A-Za-z0-9]+$"
-    },
-    "intent": {
-      "description": "Frozen intent reference from the Ready-for-Planning freeze tuple. Both hashes are carried (agentic-sdlc/docs/ARTIFACTS.md, Integrity and freeze tuple).",
+    "requestVersion": { "type": "integer", "minimum": 1 },
+    "runId": { "type": "string", "minLength": 1 },
+    "invocationId": { "type": "string", "minLength": 1 },
+    "triggerEventId": { "type": "string", "minLength": 1 },
+    "stage": { "const": "spec_design" },
+    "workItem": { "type": "string", "pattern": "^[A-Za-z][A-Za-z0-9]*(?:-[A-Za-z0-9]+)+$" },
+    "productId": { "type": "string", "pattern": "^[A-Za-z0-9]+$" },
+    "intentContentSha256": { "type": "string", "pattern": "^[0-9a-f]{64}$", "description": "Optional normalized-rendering provenance supplied by the intent source; the raw-byte ArtifactRef fingerprint remains authoritative." },
+    "freezeActivation": {
       "type": "object",
-      "required": ["repository", "commit", "path", "frozenArtifactSha256", "contentSha256"],
-      "additionalProperties": true,
+      "required": ["schema_version", "event_id", "event_type", "work_item", "intent", "policy_profile_id", "policy_profile_version", "policy_profile", "authorized_by", "recorded_at"],
+      "additionalProperties": false,
       "properties": {
-        "repository": { "type": "string", "minLength": 1 },
-        "commit": {
-          "description": "Full 40-char SHA in the intent-backlog repository the frozen intent was captured at.",
-          "type": "string",
-          "pattern": "^[0-9a-f]{40}$"
+        "schema_version": { "const": "1.0" },
+        "event_id": { "type": "string", "minLength": 1 },
+        "event_type": { "const": "activated" },
+        "work_item": {
+          "type": "object",
+          "required": ["product_id", "intent_id", "intent_version", "trello_card_id"],
+          "additionalProperties": false,
+          "properties": {
+            "product_id": { "type": "string", "minLength": 1 },
+            "intent_id": { "type": "string", "minLength": 1 },
+            "intent_version": { "type": "integer", "minimum": 1 },
+            "trello_card_id": { "type": "string", "minLength": 1 }
+          }
         },
-        "path": { "type": "string", "minLength": 1 },
-        "frozenArtifactSha256": {
-          "description": "SHA-256 of the raw bytes of the exact intent.md snapshot. This agent verifies the staged copy against it.",
-          "type": "string",
-          "pattern": "^[0-9a-f]{64}$"
-        },
-        "contentSha256": {
-          "description": "SHA-256 of the Intent Creation Skill's canonical normalized rendering. Retained as provenance; not verified here.",
-          "type": "string",
-          "pattern": "^[0-9a-f]{64}$"
-        }
+        "intent": { "$ref": "#/$defs/artifactRef" },
+        "policy_profile_id": { "type": "string", "minLength": 1 },
+        "policy_profile_version": { "type": "string", "minLength": 1 },
+        "policy_profile": { "$ref": "#/$defs/artifactRef" },
+        "authorized_by": { "type": "string", "minLength": 1 },
+        "recorded_at": { "type": "string", "format": "date-time" }
       }
     },
     "target": {
       "type": "object",
       "required": ["repository", "baseCommit", "branch", "workspace"],
-      "additionalProperties": true,
+      "additionalProperties": false,
       "properties": {
-        "repository": { "type": "string", "minLength": 1 },
-        "baseCommit": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+        "repository": { "type": "string", "format": "uri" },
+        "baseCommit": { "type": "string", "pattern": "^[0-9a-f]{40,64}$" },
         "branch": { "type": "string", "minLength": 1 },
         "workspace": { "type": "string", "minLength": 1 }
       }
     },
-    "approval": {
+    "readPaths": { "type": "array", "items": { "type": "string", "minLength": 1 }, "minItems": 1, "uniqueItems": true },
+    "writePaths": { "type": "array", "items": { "type": "string", "minLength": 1 }, "minItems": 1, "uniqueItems": true }
+  },
+  "$defs": {
+    "artifactRef": {
       "type": "object",
-      "required": ["readyForPlanning", "approvedBy", "approvedAt"],
-      "additionalProperties": true,
+      "required": ["repository", "commit_sha", "path", "sha256"],
+      "additionalProperties": false,
       "properties": {
-        "readyForPlanning": { "type": "boolean" },
-        "approvedBy": { "type": "string", "minLength": 1 },
-        "approvedAt": { "type": "string", "minLength": 1 }
+        "repository": { "type": "string", "format": "uri" },
+        "commit_sha": { "type": "string", "pattern": "^[0-9a-f]{40,64}$" },
+        "path": { "type": "string", "minLength": 1 },
+        "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
       }
     }
   }

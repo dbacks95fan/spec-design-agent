@@ -1,0 +1,93 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/dbacks95fan/spec-design-agent/schemas/work-contract.schema.json",
+  "title": "Agentic SDLC Work Contract v3",
+  "description": "Validation copy of the canonical WorkContract definition; agentic-sdlc schemas remain authoritative.",
+  "$defs": {
+    "WorkItem": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["product_id", "intent_id", "intent_version", "trello_card_id"],
+      "properties": {
+        "product_id": { "type": "string", "minLength": 1 },
+        "intent_id": { "type": "string", "minLength": 1 },
+        "intent_version": { "type": "integer", "minimum": 1 },
+        "trello_card_id": { "type": "string", "minLength": 1 }
+      }
+    },
+    "ArtifactRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["repository", "commit_sha", "path", "sha256"],
+      "properties": {
+        "repository": { "type": "string", "format": "uri" },
+        "commit_sha": { "type": "string", "pattern": "^[0-9a-f]{40,64}$" },
+        "path": { "type": "string", "minLength": 1 },
+        "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+      }
+    },
+    "CommitRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["repository", "commit_sha"],
+      "properties": {
+        "repository": { "type": "string", "format": "uri" },
+        "commit_sha": { "type": "string", "pattern": "^[0-9a-f]{40,64}$" }
+      }
+    },
+    "WorkContract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema_version", "work_item", "intent", "policy_profile_id", "policy_profile_version", "policy_profile", "target", "acceptance_criteria", "permitted_scope", "required_validation", "policy_controls", "release_requirements", "observation_requirements"],
+      "properties": {
+        "schema_version": { "const": 3 },
+        "work_item": { "$ref": "#/$defs/WorkItem" },
+        "intent": { "$ref": "#/$defs/ArtifactRef" },
+        "policy_profile_id": { "type": "string", "minLength": 1 },
+        "policy_profile_version": { "type": "string", "minLength": 1 },
+        "policy_profile": { "$ref": "#/$defs/ArtifactRef" },
+        "target": { "$ref": "#/$defs/CommitRef" },
+        "acceptance_criteria": { "type": "array", "items": { "type": "string", "minLength": 1 }, "minItems": 1 },
+        "permitted_scope": {
+          "type": "object",
+          "description": "Human-readable included/excluded product behavior. Filesystem permission is independently limited by StageInvocation.write_paths.",
+          "additionalProperties": false,
+          "required": ["included", "excluded"],
+          "properties": {
+            "included": { "type": "array", "items": { "type": "string" }, "minItems": 1 },
+            "excluded": { "type": "array", "items": { "type": "string" } }
+          }
+        },
+        "required_validation": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["name", "command"],
+            "properties": {
+              "name": { "type": "string", "minLength": 1 },
+              "command": { "type": "string", "minLength": 1 }
+            }
+          }
+        },
+        "policy_controls": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["control_id", "required_action", "evidence_expected"],
+            "properties": {
+              "control_id": { "type": "string", "minLength": 1 },
+              "required_action": { "type": "string", "minLength": 1 },
+              "evidence_expected": { "type": "string", "minLength": 1 }
+            }
+          }
+        },
+        "release_requirements": { "type": "array", "items": { "type": "string" } },
+        "observation_requirements": { "type": "array", "items": { "type": "string" } }
+      }
+    }
+  },
+  "$ref": "#/$defs/WorkContract"
+}

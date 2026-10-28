@@ -1,5 +1,4 @@
-# ABOUTME: Shared decoding of model output into a SpecGenerationOutput: either a spec body,
-# ABOUTME: or a fenced json {"needsDecision":[...]} block signalling a material decision.
+# ABOUTME: Decodes a strict JSON spec body or needs-decision response from a provider.
 
 from __future__ import annotations
 
@@ -43,24 +42,18 @@ def decode_generator_output(
 
     fenced = _FENCED_JSON.search(text)
     candidate = fenced.group(1).strip() if fenced else (text if text.startswith("{") else None)
-    if candidate is not None:
-        try:
-            obj = json.loads(candidate)
-            decisions = _coerce_decisions(obj.get("needsDecision")) if isinstance(obj, dict) else []
-            if decisions:
-                return SpecGenerationOutput(
-                    spec_body="",
-                    model_provider=model_provider,
-                    model=model,
-                    human_decisions=decisions,
-                    usage=usage,
-                )
-        except json.JSONDecodeError:
-            pass  # not a decision block — treat as spec body
-
-    body = _LEAD_FENCE.sub("", text)
-    body = _TRAIL_FENCE.sub("", body)
-    body = _FRONTMATTER.sub("", body, count=1)
-    return SpecGenerationOutput(
-        spec_body=body.strip(), model_provider=model_provider, model=model, usage=usage
-    )
+    if candidate is None:
+        raise ValueError("Provider response must be a JSON object")
+    try:
+        obj = json.loads(candidate)
+    except json.JSONDecodeError as exc:
+        raise ValueError("Provider response is not valid JSON") from exc
+    if not isinstance(obj, dict):
+        raise ValueError("Provider response must be a JSON object")
+    decisions = _coerce_decisions(obj.get("needsDecision"))
+    if decisions:
+        return SpecGenerationOutput(spec_body="", model_provider=model_provider, model=model, human_decisions=decisions, usage=usage)
+    body = obj.get("specMarkdown")
+    if not isinstance(body, str) or not body.strip():
+        raise ValueError("Provider response must contain a non-empty specMarkdown string")
+    return SpecGenerationOutput(spec_body=body.strip(), model_provider=model_provider, model=model, usage=usage)
