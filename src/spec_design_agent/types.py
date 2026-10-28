@@ -9,7 +9,7 @@ from typing import Any, Literal
 SpecStatus = Literal["spec_ready", "needs_decision", "blocked", "failed"]
 
 # The request-contract version this build understands.
-SUPPORTED_REQUEST_VERSION = 1
+SUPPORTED_REQUEST_VERSION = 2
 
 
 @dataclass(frozen=True)
@@ -22,7 +22,7 @@ class IntentRef:
     frozen_artifact_sha256: str
     # SHA-256 of the Intent Creation Skill's canonical normalized rendering.
     # Retained as provenance only; not verified here.
-    content_sha256: str
+    content_sha256: str | None
 
 
 @dataclass(frozen=True)
@@ -34,34 +34,78 @@ class TargetRef:
 
 
 @dataclass(frozen=True)
-class Approval:
-    ready_for_planning: bool
-    approved_by: str
-    approved_at: str
+class PolicyProfileRef:
+    repository: str
+    commit: str
+    path: str
+    frozen_artifact_sha256: str
+    profile_id: str
+    version: str
+
+
+@dataclass(frozen=True)
+class FreezeActivation:
+    event_id: str
+    authorized_by: str
+    recorded_at: str
+    product_id: str
+    intent_id: str
+    intent_version: int
+    trello_card_id: str
 
 
 @dataclass(frozen=True)
 class SpecRequest:
     run_id: str
+    invocation_id: str
+    trigger_event_id: str
+    stage: str
     work_item: str
     product_id: str
     intent: IntentRef
+    policy_profile: PolicyProfileRef
+    freeze_activation: FreezeActivation
     target: TargetRef
-    approval: Approval
-    request_version: int = 1
+    read_paths: list[str]
+    write_paths: list[str]
+    request_version: int = 2
 
     @staticmethod
     def from_dict(raw: dict[str, Any]) -> "SpecRequest":
+        freeze = raw["freezeActivation"]
+        frozen_work = freeze["work_item"]
+        intent_ref = freeze["intent"]
+        profile_ref = freeze["policy_profile"]
         return SpecRequest(
             run_id=raw["runId"],
+            invocation_id=raw["invocationId"],
+            trigger_event_id=raw["triggerEventId"],
+            stage=raw["stage"],
             work_item=raw["workItem"],
             product_id=raw["productId"],
             intent=IntentRef(
-                repository=raw["intent"]["repository"],
-                commit=raw["intent"]["commit"],
-                path=raw["intent"]["path"],
-                frozen_artifact_sha256=raw["intent"]["frozenArtifactSha256"],
-                content_sha256=raw["intent"]["contentSha256"],
+                repository=intent_ref["repository"],
+                commit=intent_ref["commit_sha"],
+                path=intent_ref["path"],
+                frozen_artifact_sha256=intent_ref["sha256"],
+                content_sha256=raw.get("intentContentSha256"),
+            ),
+            policy_profile=PolicyProfileRef(
+                repository=profile_ref["repository"],
+                commit=profile_ref["commit_sha"],
+                path=profile_ref["path"],
+                frozen_artifact_sha256=profile_ref["sha256"],
+                profile_id=freeze["policy_profile_id"],
+                version=freeze["policy_profile_version"],
+            ),
+            freeze_activation=FreezeActivation(
+                event_id=freeze["event_id"],
+                authorized_by=freeze["authorized_by"],
+                recorded_at=freeze["recorded_at"],
+                product_id=frozen_work["product_id"],
+                intent_id=frozen_work["intent_id"],
+                intent_version=frozen_work["intent_version"],
+                trello_card_id=frozen_work["trello_card_id"],
             ),
             target=TargetRef(
                 repository=raw["target"]["repository"],
@@ -69,12 +113,9 @@ class SpecRequest:
                 branch=raw["target"]["branch"],
                 workspace=raw["target"]["workspace"],
             ),
-            approval=Approval(
-                ready_for_planning=bool(raw["approval"]["readyForPlanning"]),
-                approved_by=raw["approval"]["approvedBy"],
-                approved_at=raw["approval"]["approvedAt"],
-            ),
-            request_version=int(raw.get("requestVersion", 1)),
+            read_paths=list(raw["readPaths"]),
+            write_paths=list(raw["writePaths"]),
+            request_version=int(raw["requestVersion"]),
         )
 
 
@@ -99,44 +140,72 @@ class HumanDecision:
 @dataclass
 class SpecResult:
     run_id: str
+    invocation_id: str
+    trigger_event_id: str
+    stage: str
     work_item: str
+    product_id: str
+    intent_version: int
+    trello_card_id: str
     status: SpecStatus
     summary: str
     branch: str
     workspace: str
     intent_commit: str
     frozen_artifact_sha256: str
-    intent_content_sha256: str
+    policy_profile_id: str
+    policy_profile_version: str
+    policy_profile_sha256: str
+    intent_content_sha256: str | None
     blocking_concerns: list[str] = field(default_factory=list)
     non_blocking_concerns: list[str] = field(default_factory=list)
     human_decisions: list[HumanDecision] = field(default_factory=list)
     spec_commit: str | None = None
     spec_path: str | None = None
+    spec_sha256: str | None = None
     spec_version: int | None = None
+    work_contract_path: str | None = None
+    work_contract_sha256: str | None = None
     # Token/cost totals for the generation, when the provider reports them.
     usage: dict[str, Any] | None = None
 
     def to_json(self) -> dict[str, Any]:
         out: dict[str, Any] = {
             "runId": self.run_id,
+            "invocationId": self.invocation_id,
+            "triggerEventId": self.trigger_event_id,
+            "stage": self.stage,
             "workItem": self.work_item,
+            "productId": self.product_id,
+            "intentVersion": self.intent_version,
+            "trelloCardId": self.trello_card_id,
             "status": self.status,
             "summary": self.summary,
             "branch": self.branch,
             "workspace": self.workspace,
             "intentCommit": self.intent_commit,
             "frozenArtifactSha256": self.frozen_artifact_sha256,
-            "intentContentSha256": self.intent_content_sha256,
+            "policyProfileId": self.policy_profile_id,
+            "policyProfileVersion": self.policy_profile_version,
+            "policyProfileSha256": self.policy_profile_sha256,
             "blockingConcerns": list(self.blocking_concerns),
             "nonBlockingConcerns": list(self.non_blocking_concerns),
             "humanDecisions": [d.to_json() for d in self.human_decisions],
         }
+        if self.intent_content_sha256 is not None:
+            out["intentContentSha256"] = self.intent_content_sha256
         if self.spec_commit is not None:
             out["specCommit"] = self.spec_commit
         if self.spec_path is not None:
             out["specPath"] = self.spec_path
+        if self.spec_sha256 is not None:
+            out["specSha256"] = self.spec_sha256
         if self.spec_version is not None:
             out["specVersion"] = self.spec_version
+        if self.work_contract_path is not None:
+            out["workContractPath"] = self.work_contract_path
+        if self.work_contract_sha256 is not None:
+            out["workContractSha256"] = self.work_contract_sha256
         if self.usage is not None:
             out["usage"] = self.usage
         return out
@@ -145,11 +214,16 @@ class SpecResult:
 @dataclass
 class SpecRunRecord:
     run_id: str
+    invocation_id: str
+    trigger_event_id: str
     work_item: str
     product_id: str
     intent_commit: str
     frozen_artifact_sha256: str
-    intent_content_sha256: str
+    policy_profile_id: str
+    policy_profile_version: str
+    policy_profile_sha256: str
+    intent_content_sha256: str | None
     base_commit: str
     branch: str
     model_provider: str
@@ -167,11 +241,15 @@ class SpecRunRecord:
     def to_json(self) -> dict[str, Any]:
         out: dict[str, Any] = {
             "runId": self.run_id,
+            "invocationId": self.invocation_id,
+            "triggerEventId": self.trigger_event_id,
             "workItem": self.work_item,
             "productId": self.product_id,
             "intentCommit": self.intent_commit,
             "frozenArtifactSha256": self.frozen_artifact_sha256,
-            "intentContentSha256": self.intent_content_sha256,
+            "policyProfileId": self.policy_profile_id,
+            "policyProfileVersion": self.policy_profile_version,
+            "policyProfileSha256": self.policy_profile_sha256,
             "baseCommit": self.base_commit,
             "branch": self.branch,
             "modelProvider": self.model_provider,
@@ -183,6 +261,8 @@ class SpecRunRecord:
             "completedAt": self.completed_at,
             "status": self.status,
         }
+        if self.intent_content_sha256 is not None:
+            out["intentContentSha256"] = self.intent_content_sha256
         if self.spec_version is not None:
             out["specVersion"] = self.spec_version
         if self.usage is not None:
@@ -198,6 +278,7 @@ class ParsedIntent:
     raw: str
     product_id: str | None = None
     version: int | None = None
+    trello_card_id: str | None = None
     open_decisions: list[str] = field(default_factory=list)
     acceptance_criteria: list[str] = field(default_factory=list)
     sections: dict[str, str] = field(default_factory=dict)

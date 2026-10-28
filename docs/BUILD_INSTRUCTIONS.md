@@ -9,30 +9,30 @@ The implementation must be usable as a bounded job. Containerization is an agent
 ## Required behavior
 
 1. Accept a structured work request defined in [Integration](INTEGRATION.md).
-2. Validate the request, repository identity, frozen intent commit, and the raw-byte `frozenArtifactSha256` before producing an artifact. Carry `contentSha256` through as provenance.
-3. Work only in the assigned isolated workspace and `work/<intent-id>` branch.
-4. Inspect the target repository and relevant repository-local instructions before design. Do not modify product code.
-5. Create or update `.agent/work/<intent-id>/spec.md`, `.agent/work/<intent-id>/work-contract.yaml`, and `.agent/work/<intent-id>/spec-run.json`.
-6. Commit only the agent-owned engineering artifacts after validation succeeds.
-7. Return a schema-valid structured result. The Conductor alone owns state transitions and Trello updates.
+2. Accept only a Spec & Design invocation mapped from canonical StageInvocation 1.1. Verify the embedded Prioritized `FreezeActivationEvent`, work identity, and raw-byte hashes for both frozen intent and policy profile; there is no Ready-for-Planning approval field.
+3. Work only in the assigned isolated workspace and `work/<intent-id>` branch. This implementation currently requires the workspace to be provisioned before invocation; it verifies but does not create it. Reconcile this with the canonical workspace-provisioning requirement before claiming full conformance.
+4. Copy both verified snapshots byte-for-byte into `.agent/work/<intent-id>/`, then inspect repository instructions, product constitution, architecture, code, interfaces, tests, and operational constraints without modifying product files.
+5. Produce `spec.md` and a proposed Work Contract v3. Construct the contract from frozen identity, intent acceptance criteria and scope, policy controls, and repository-declared deterministic validation commands; validate it against the canonical WorkContract schema.
+6. Validate the artifact set, write `spec-run.json`, and commit only frozen copies and assigned engineering artifacts after validation succeeds.
+7. Return a schema-valid result correlated to the invocation, with commit/path/hash references for both outputs. The Conductor alone owns workflow state and Trello updates.
 
 ## Delivery increments
 
 ### 1. Contract and preflight
 
-Implement request/result schema validation; path, branch, and identifier validation; frozen-intent integrity verification; and fail-closed status mapping. Add fixture tests for valid, missing, malformed, mismatched, and unapproved inputs.
+Implement request/result schema validation; path, branch, and identifier validation; Prioritized freeze identity checks; exact-byte integrity verification for both frozen inputs; and fail-closed status mapping. Add fixture tests for valid, missing, malformed, mismatched, and unauthorized inputs.
 
 ### 2. Workspace and repository inspection
 
-Create or receive the isolated workspace only from the explicit request. Verify the base commit and work branch, copy and hash-check the frozen `intent.md` if the Conductor has not already done so, and read repository-local instructions. Capture repository facts needed for the spec without modifying source code.
+Use only the isolated workspace and work branch assigned by the invocation. Verify the base commit, copy and hash-check both frozen snapshots, and read repository-local instructions plus the product constitution and architecture. Capture repository facts needed for the spec without modifying product source code.
 
 ### 3. Specification production
 
-Generate `spec.md` using the required structure in [Artifacts](ARTIFACTS.md). Its implementation and validation sections are the sole human-readable plan; do not create `plan.md`. Generate a proposed `work-contract.yaml` from the same frozen inputs. Preserve intent meaning, identify applicable repository constraints and policy controls, and classify uncertainty. A decision that materially affects behavior, architecture, security, compliance, data semantics, destructive action, external contracts, cost, or scope must return `needs_decision`, not a guess.
+Generate `spec.md` using the required structure in [Artifacts](ARTIFACTS.md). Its implementation and validation sections are the sole human-readable plan; do not create `plan.md`. Construct and validate `work-contract.yaml` as Work Contract v3. Preserve intent meaning, consult product baselines and policy controls, and classify uncertainty. A decision that materially affects behavior, architecture, security, compliance, data semantics, destructive action, external contracts, cost, or scope must return `needs_decision`, not a guess.
 
 ### 4. Evidence and result
 
-Write `spec-run.json`, validate the artifact set, commit it, and emit `spec_ready`, `needs_decision`, `blocked`, or `failed`. The result includes commit identity, artifact paths, concerns, and decision requests, but no secrets or hidden reasoning.
+Write `spec-run.json`, validate schemas and exact-byte hashes, commit the artifact set, and emit `spec_ready`, `needs_decision`, `blocked`, or `failed`. `spec_ready` means both outputs are ready for human acceptance, never that they are accepted. The result includes invocation identity, commit identity, artifact paths and hashes, concerns, and decision requests, but no secrets or hidden reasoning.
 
 ### 5. Operational hardening
 
@@ -40,8 +40,8 @@ Add structured, sanitized logging; timeouts; bounded repository inspection; canc
 
 ## Non-negotiable rules
 
-- The frozen intent is immutable. If `frozenArtifactSha256` differs from the raw bytes of the workspace copy, stop with `blocked` / `INTENT_MUTATED`.
-- The specification may iterate during Design Review, but every revision must retain provenance to the same frozen intent.
+- The frozen intent and policy profile are immutable. If either Prioritized freeze hash differs from its raw snapshot bytes, stop with `blocked`.
+- The specification may iterate during human review while the card remains in Spec & Design, but every revision must retain provenance to the same frozen intent and policy profile.
 - A spec is not a test plan alone. It must state observable outcomes and preserve the distinction between test evidence and actual outcome delivery.
 - Do not write product code, approve the spec or work contract, or change Trello state. The proposed work contract is an execution record, not a separate human-authored plan.
 

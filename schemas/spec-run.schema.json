@@ -6,11 +6,15 @@
   "type": "object",
   "required": [
     "runId",
+    "invocationId",
+    "triggerEventId",
     "workItem",
     "productId",
     "intentCommit",
     "frozenArtifactSha256",
-    "intentContentSha256",
+    "policyProfileId",
+    "policyProfileVersion",
+    "policyProfileSha256",
     "baseCommit",
     "branch",
     "modelProvider",
@@ -28,6 +32,8 @@
       "type": "string",
       "minLength": 1
     },
+    "invocationId": { "type": "string", "minLength": 1 },
+    "triggerEventId": { "type": "string", "minLength": 1 },
     "workItem": {
       "type": "string",
       "minLength": 1
@@ -45,6 +51,9 @@
       "type": "string",
       "pattern": "^[0-9a-f]{64}$"
     },
+    "policyProfileId": { "type": "string", "minLength": 1 },
+    "policyProfileVersion": { "type": "string", "minLength": 1 },
+    "policyProfileSha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
     "intentContentSha256": {
       "description": "Normalized content hash carried from the freeze tuple as provenance.",
       "type": "string",

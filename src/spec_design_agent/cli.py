@@ -15,7 +15,7 @@ from .types import RequestValidationError
 USAGE = """spec-design-agent spec --request <path> [--provider <name>] [--model <id>]
 
 Exit codes:
-  0   spec_ready       spec.md committed, ready for human Design Review
+  0   spec_ready       spec.md and work contract committed, ready for human acceptance in Spec & Design
   10  needs_decision   a material decision is missing
   20  blocked          an input/integrity/access/environment precondition failed
   30  failed           an unexpected execution failure occurred

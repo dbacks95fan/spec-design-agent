@@ -15,10 +15,11 @@ from . import git
 from .config import AgentConfig, load_config
 from .generators import create_generator
 from .generators.base import SpecGenerationInput, SpecGenerator
-from .integrity import verify_frozen_intent
+from .integrity import sha256_bytes, verify_frozen_intent
 from .intent import read_intent_file
 from .logging_ import error_message, log
 from .prompt import PROMPT_VERSION
+from .policy_profile import parse_policy_profile
 from .repo_inspect import inspect_repository
 from .request import check_request_preconditions, validate_request_shape
 from .result import build_result
@@ -26,6 +27,7 @@ from .spec import SpecFrontmatter, assemble_spec, validate_spec
 from .spec_run import build_run_record
 from .types import HumanDecision, PreconditionError, SpecRequest, SpecResult, SpecRunRecord, SpecStatus
 from .workspace import prepare_workspace
+from .work_contract import build_work_contract, render_work_contract
 
 EXIT_CODES: dict[SpecStatus, int] = {
     "spec_ready": 0,
@@ -102,7 +104,10 @@ def run_spec_design(
             human_decisions=human_decisions,
             spec_commit=(provenance or {}).get("spec_commit"),
             spec_path=(provenance or {}).get("spec_path"),
+            spec_sha256=(provenance or {}).get("spec_sha256"),
             spec_version=(provenance or {}).get("spec_version"),
+            work_contract_path=(provenance or {}).get("work_contract_path"),
+            work_contract_sha256=(provenance or {}).get("work_contract_sha256"),
             usage=(provenance or {}).get("usage"),
         )
         run_record: SpecRunRecord | None = None
@@ -142,7 +147,8 @@ def run_spec_design(
         )
 
         intent = read_intent_file(prepared.intent_path)
-        verify_frozen_intent(request, intent, prepared.frozen_artifact_sha256)
+        verify_frozen_intent(request, intent, prepared.intent_sha256)
+        policy_profile = parse_policy_profile(prepared.policy_profile_path.read_text(encoding="utf-8"), request)
 
         facts = inspect_repository(prepared.paths.root, cfg.inspection)
         gen = generator or create_generator(provider=cfg.provider, model=cfg.model)
@@ -153,6 +159,7 @@ def run_spec_design(
                     work_item=request.work_item,
                     product_id=request.product_id,
                     intent=intent,
+                    policy_profile=policy_profile,
                     repo_facts=facts,
                     repo_root=str(prepared.paths.root),
                     cancel=cancel,
@@ -174,18 +181,23 @@ def run_spec_design(
                 f"A material decision must be resolved before {request.work_item} can be specified.",
                 human_decisions=generated.human_decisions,
                 non_blocking_concerns=generated.non_blocking_concerns,
-                frozen_artifact_sha256=prepared.frozen_artifact_sha256,
+                frozen_artifact_sha256=prepared.intent_sha256,
                 provenance=provenance,
             )
             _persist_run_record(work_dir, outcome.run_record)
             return outcome
 
         spec_version = prior_spec_version + 1
+        work_contract = build_work_contract(request, intent, policy_profile, facts)
+        work_contract_text = render_work_contract(work_contract)
         frontmatter = SpecFrontmatter(
             work_item=request.work_item,
             product_id=request.product_id,
             intent_commit=request.intent.commit,
-            frozen_artifact_sha256=prepared.frozen_artifact_sha256,
+            frozen_artifact_sha256=prepared.intent_sha256,
+            policy_profile_id=policy_profile.profile_id,
+            policy_profile_version=policy_profile.version,
+            policy_profile_sha256=prepared.policy_profile_sha256,
             intent_content_sha256=request.intent.content_sha256,
             base_commit=prepared.head_commit,
             spec_version=spec_version,
@@ -214,17 +226,20 @@ def run_spec_design(
                 "failed",
                 f"The generated specification for {request.work_item} did not meet the structural contract.",
                 blocking_concerns=concerns,
-                frozen_artifact_sha256=prepared.frozen_artifact_sha256,
+                frozen_artifact_sha256=prepared.intent_sha256,
                 provenance={**provenance, "spec_version": spec_version},
             )
             _persist_run_record(work_dir, outcome.run_record)
             return outcome
 
-        (work_dir / "spec.md").write_text(spec_markdown, encoding="utf-8")
+        (work_dir / "spec.md").write_bytes(spec_markdown.encode("utf-8"))
+        (work_dir / "work-contract.yaml").write_bytes(work_contract_text.encode("utf-8"))
+        spec_sha256 = sha256_bytes((work_dir / "spec.md").read_bytes())
+        work_contract_sha256 = sha256_bytes((work_dir / "work-contract.yaml").read_bytes())
         run_record = build_run_record(
             request=request,
             base_commit=prepared.head_commit,
-            frozen_artifact_sha256=prepared.frozen_artifact_sha256,
+            frozen_artifact_sha256=prepared.intent_sha256,
             model_provider=generated.model_provider,
             model=generated.model,
             started_at=started_at,
@@ -237,8 +252,8 @@ def run_spec_design(
 
         spec_commit = git.stage_and_commit(
             prepared.paths.root,
-            [prepared.paths.intent_rel, prepared.paths.spec_rel, prepared.paths.run_rel],
-            f"spec({request.work_item}): spec v{spec_version} ready for Design Review [runId {request.run_id}]",
+            [prepared.paths.intent_rel, prepared.paths.policy_profile_rel, prepared.paths.spec_rel, prepared.paths.work_contract_rel, prepared.paths.run_rel],
+            f"spec({request.work_item}): spec v{spec_version} and Work Contract ready for human acceptance [runId {request.run_id}]",
         )
 
         non_blocking = list(generated.non_blocking_concerns)
@@ -248,11 +263,14 @@ def run_spec_design(
         result = build_result(
             request=request,
             status="spec_ready",
-            summary=f"spec.md v{spec_version} for {request.work_item} is committed and ready for Design Review.",
-            frozen_artifact_sha256=prepared.frozen_artifact_sha256,
+            summary=f"spec.md v{spec_version} and Work Contract v3 for {request.work_item} are committed and ready for human acceptance.",
+            frozen_artifact_sha256=prepared.intent_sha256,
             spec_commit=spec_commit,
             spec_path=prepared.paths.spec_rel,
+            spec_sha256=spec_sha256,
             spec_version=spec_version,
+            work_contract_path=prepared.paths.work_contract_rel,
+            work_contract_sha256=work_contract_sha256,
             non_blocking_concerns=non_blocking,
             usage=provenance.get("usage"),
         )
@@ -301,14 +319,23 @@ def _persist_run_record(work_dir: Path, record: SpecRunRecord | None) -> None:
 def _result_from_json(data: dict[str, Any]) -> SpecResult:
     return SpecResult(
         run_id=data["runId"],
+        invocation_id=data["invocationId"],
+        trigger_event_id=data["triggerEventId"],
+        stage=data["stage"],
         work_item=data["workItem"],
+        product_id=data["productId"],
+        intent_version=data["intentVersion"],
+        trello_card_id=data["trelloCardId"],
         status=data["status"],
         summary=data["summary"],
         branch=data["branch"],
         workspace=data["workspace"],
         intent_commit=data["intentCommit"],
         frozen_artifact_sha256=data["frozenArtifactSha256"],
-        intent_content_sha256=data["intentContentSha256"],
+        policy_profile_id=data["policyProfileId"],
+        policy_profile_version=data["policyProfileVersion"],
+        policy_profile_sha256=data["policyProfileSha256"],
+        intent_content_sha256=data.get("intentContentSha256"),
         blocking_concerns=list(data.get("blockingConcerns", [])),
         non_blocking_concerns=list(data.get("nonBlockingConcerns", [])),
         human_decisions=[
@@ -322,5 +349,8 @@ def _result_from_json(data: dict[str, Any]) -> SpecResult:
         ],
         spec_commit=data.get("specCommit"),
         spec_path=data.get("specPath"),
+        spec_sha256=data.get("specSha256"),
         spec_version=data.get("specVersion"),
+        work_contract_path=data.get("workContractPath"),
+        work_contract_sha256=data.get("workContractSha256"),
     )

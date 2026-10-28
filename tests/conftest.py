@@ -11,6 +11,17 @@ import pytest
 
 FORTY_HEX = "a" * 40
 BASE_HEX = "b" * 40
+PROFILE_TEXT = """# Policy & Compliance Profile
+
+Profile ID: MF-DEFAULT
+Version: 1
+
+## Controls
+
+| Control ID | Required agent action | Required evidence | Escalation trigger |
+| --- | --- | --- | --- |
+| SEC-BASE-001 | Do not expose or hardcode secrets. | Secret scan or equivalent deterministic check. | A secret is needed. |
+"""
 
 
 def sha256(text: str) -> str:
@@ -100,28 +111,46 @@ In scope: current-week export. Non-goal: historical plans.
 
 def valid_request(**overrides) -> dict:
     intent_text = canonical_intent()
+    intent_path = "products/mealflow/intents/INT-MF-0042/intent.md"
     request = {
+        "requestVersion": 2,
         "runId": "11111111-1111-1111-1111-111111111111",
+        "invocationId": "invoke-INT-MF-0042",
+        "triggerEventId": "event-123",
+        "stage": "spec_design",
         "workItem": "INT-MF-0042",
         "productId": "MF",
-        "intent": {
-            "repository": "dbacks95fan/intent-backlog",
-            "commit": FORTY_HEX,
-            "path": "products/mealflow/intents/INT-MF-0042/intent.md",
-            "frozenArtifactSha256": sha256(intent_text),
-            "contentSha256": sha256("canonical:" + intent_text),
+        "intentContentSha256": sha256("canonical:" + intent_text),
+        "freezeActivation": {
+            "schema_version": "1.0",
+            "event_id": "freeze-123",
+            "event_type": "activated",
+            "work_item": {"product_id": "MF", "intent_id": "INT-MF-0042", "intent_version": 5, "trello_card_id": "card-123"},
+            "intent": {
+                "repository": "https://github.com/dbacks95fan/intent-backlog",
+                "commit_sha": FORTY_HEX,
+                "path": intent_path,
+                "sha256": sha256(intent_text),
+            },
+            "policy_profile_id": "MF-DEFAULT",
+            "policy_profile_version": "1",
+            "policy_profile": {
+                "repository": "https://github.com/dbacks95fan/intent-backlog",
+                "commit_sha": FORTY_HEX,
+                "path": "products/mealflow/policy-profiles/MF-DEFAULT.md",
+                "sha256": sha256(PROFILE_TEXT),
+            },
+            "authorized_by": "owner-1",
+            "recorded_at": "2026-09-06T12:30:00Z",
         },
         "target": {
-            "repository": "dbacks95fan/mealflow",
+            "repository": "https://github.com/dbacks95fan/mealflow",
             "baseCommit": BASE_HEX,
             "branch": "work/INT-MF-0042",
             "workspace": "/work/INT-MF-0042",
         },
-        "approval": {
-            "readyForPlanning": True,
-            "approvedBy": "principal:sobe",
-            "approvedAt": "2026-09-06T12:30:00Z",
-        },
+        "readPaths": ["."],
+        "writePaths": [".agent/work/INT-MF-0042"],
     }
     request.update(overrides)
     return request
@@ -169,25 +198,48 @@ def staged_repo_and_request(tmp_path):
             "package.json": '{"name": "fixture", "scripts": {"test": "pytest"}}',
             "src/index.py": "def noop():\n    return None\n",
             intent_path: intent_text,
+            f".agent/inputs/invoke-{work_item}/intent.md": intent_text,
+            f".agent/inputs/invoke-{work_item}/policy-profile.md": PROFILE_TEXT,
         },
     )
     request = {
+        "requestVersion": 2,
         "runId": f"run-{work_item}",
+        "invocationId": f"invoke-{work_item}",
+        "triggerEventId": "event-123",
+        "stage": "spec_design",
         "workItem": work_item,
         "productId": "MF",
-        "intent": {
-            "repository": "dbacks95fan/intent-backlog",
-            "commit": FORTY_HEX,
-            "path": intent_path,
-            "frozenArtifactSha256": sha256(intent_text),
-            "contentSha256": sha256("canonical:" + intent_text),
+        "intentContentSha256": sha256("canonical:" + intent_text),
+        "freezeActivation": {
+            "schema_version": "1.0",
+            "event_id": "freeze-123",
+            "event_type": "activated",
+            "work_item": {"product_id": "MF", "intent_id": work_item, "intent_version": 5, "trello_card_id": "card-123"},
+            "intent": {
+                "repository": "https://github.com/dbacks95fan/intent-backlog",
+                "commit_sha": FORTY_HEX,
+                "path": intent_path,
+                "sha256": sha256(intent_text),
+            },
+            "policy_profile_id": "MF-DEFAULT",
+            "policy_profile_version": "1",
+            "policy_profile": {
+                "repository": "https://github.com/dbacks95fan/intent-backlog",
+                "commit_sha": FORTY_HEX,
+                "path": "products/mealflow/policy-profiles/MF-DEFAULT.md",
+                "sha256": sha256(PROFILE_TEXT),
+            },
+            "authorized_by": "owner-1",
+            "recorded_at": "2026-09-06T12:30:00Z",
         },
         "target": {
-            "repository": "dbacks95fan/mealflow",
+            "repository": "https://github.com/dbacks95fan/mealflow",
             "baseCommit": base_commit,
             "branch": branch,
             "workspace": str(root),
         },
-        "approval": {"readyForPlanning": True, "approvedBy": "principal:sobe", "approvedAt": "2026-09-06T12:30:00Z"},
+        "readPaths": ["."],
+        "writePaths": [f".agent/work/{work_item}"],
     }
     return root, request, intent_text, intent_path

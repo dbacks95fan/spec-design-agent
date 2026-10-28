@@ -42,6 +42,6 @@ def is_ancestor(cwd: str | Path, ancestor: str, descendant: str) -> bool:
 
 
 def stage_and_commit(cwd: str | Path, paths: list[str], message: str) -> str:
-    _git(cwd, ["add", "--", *paths])
+    _git(cwd, ["add", "--force", "--", *paths])
     _git(cwd, ["commit", "-m", message])
     return head_commit(cwd)

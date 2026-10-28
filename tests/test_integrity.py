@@ -9,13 +9,14 @@ from spec_design_agent.types import PreconditionError, SpecRequest
 def _request_for(intent_text: str) -> SpecRequest:
     return SpecRequest.from_dict(
         valid_request(
-            intent={
-                "repository": "dbacks95fan/intent-backlog",
-                "commit": FORTY_HEX,
-                "path": "products/mealflow/intents/INT-MF-0042/intent.md",
-                "frozenArtifactSha256": sha256(intent_text),
-                "contentSha256": sha256("canonical:" + intent_text),
-            }
+            intentContentSha256=sha256("canonical:" + intent_text),
+            freezeActivation={
+                **valid_request()["freezeActivation"],
+                "intent": {
+                    **valid_request()["freezeActivation"]["intent"],
+                    "sha256": sha256(intent_text),
+                },
+            },
         )
     )
 
@@ -46,9 +47,7 @@ def test_blocks_identity_mismatch():
     assert exc.value.code == "INTENT_IDENTITY_MISMATCH"
 
 
-def test_admits_any_lifecycle_status():
-    # The freeze protocol is still documented in agentic-sdlc/docs, but a run is
-    # admitted on identity and byte integrity alone — not on lifecycle state.
+def test_integrity_is_independent_of_intent_display_status():
     for status in ("New Ideas", "Refining", "Accepted", "Frozen"):
         text = canonical_intent(status=status)
         verify_frozen_intent(_request_for(text), parse_intent(text), sha256_text(text))

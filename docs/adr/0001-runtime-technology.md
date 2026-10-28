@@ -67,7 +67,7 @@ operational health.
 - Because there is no service runtime, operational concerns (retries, concurrency,
   scheduling) remain with the Conductor, as the architecture intends.
 - Structural spec validation is deterministic; semantic intent-fidelity review
-  stays a human Design Review gate (the `Design Review` stage in
+  stays a human acceptance gate inside `Spec & Design` (the board stage in
   `agentic-sdlc/docs/WORKFLOW.md`).
 - Tests must write the frozen intent as exact bytes (no OS newline translation),
   mirroring how the Conductor stages it, or the integrity check rejects the copy.

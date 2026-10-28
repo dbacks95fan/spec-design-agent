@@ -6,11 +6,17 @@ from spec_design_agent.types import HumanDecision, SpecRequest
 
 REQUEST = SpecRequest.from_dict(valid_request())
 BASE = {"request": REQUEST, "frozen_artifact_sha256": "a" * 64}
+CONTRACT = {
+    "spec_sha256": "d" * 64,
+    "work_contract_path": ".agent/work/INT-MF-0042/work-contract.yaml",
+    "work_contract_sha256": "c" * 64,
+}
 
 
 def test_builds_valid_spec_ready_result():
     result = build_result(
         **BASE,
+        **CONTRACT,
         status="spec_ready",
         summary="ready",
         spec_commit="b" * 40,
@@ -30,6 +36,7 @@ def test_rejects_spec_ready_with_blocking_concern():
     with pytest.raises(ResultInvariantError):
         build_result(
             **BASE,
+            **CONTRACT,
             status="spec_ready",
             summary="ready",
             spec_commit="b" * 40,
@@ -47,6 +54,7 @@ def test_rejects_needs_decision_without_decision():
 def test_redacts_secrets_from_summary_and_concerns():
     result = build_result(
         **BASE,
+        **CONTRACT,
         status="blocked",
         summary="failed using sk-ant-abcdef123456",
         blocking_concerns=["token ghp_deadbeef00000"],
@@ -58,6 +66,7 @@ def test_redacts_secrets_from_summary_and_concerns():
 def test_accepts_well_formed_needs_decision():
     result = build_result(
         **BASE,
+        **CONTRACT,
         status="needs_decision",
         summary="hold",
         human_decisions=[HumanDecision(question="delimiter?", impact="data contract", minimum_authority="product owner")],
@@ -77,6 +86,7 @@ def test_result_carries_usage_and_validates_against_the_schema():
     }
     result = build_result(
         **BASE,
+        **CONTRACT,
         status="spec_ready",
         summary="ready",
         spec_commit="b" * 40,
@@ -90,6 +100,7 @@ def test_result_carries_usage_and_validates_against_the_schema():
 def test_usage_is_omitted_when_the_provider_does_not_report_it():
     result = build_result(
         **BASE,
+        **CONTRACT,
         status="spec_ready",
         summary="ready",
         spec_commit="b" * 40,

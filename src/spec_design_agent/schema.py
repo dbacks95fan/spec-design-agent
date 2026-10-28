@@ -7,16 +7,18 @@ import json
 from functools import lru_cache
 from pathlib import Path
 
-from jsonschema import Draft7Validator
+from jsonschema.validators import validator_for
+from jsonschema import FormatChecker
 
 _SCHEMA_DIR = Path(__file__).resolve().parents[2] / "schemas"
 
 
 @lru_cache(maxsize=None)
-def _validator(name: str) -> Draft7Validator:
+def _validator(name: str):
     schema = json.loads((_SCHEMA_DIR / name).read_text(encoding="utf-8"))
-    Draft7Validator.check_schema(schema)
-    return Draft7Validator(schema)
+    validator_type = validator_for(schema)
+    validator_type.check_schema(schema)
+    return validator_type(schema, format_checker=FormatChecker())
 
 
 def validate(schema_name: str, value: object) -> list[str]:
