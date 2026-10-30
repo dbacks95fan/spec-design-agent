@@ -69,12 +69,17 @@ def prepare_workspace(request: SpecRequest) -> PreparedWorkspace:
     """Confirm the assigned worktree and copy both frozen snapshots byte-for-byte."""
     paths = resolve_workspace_paths(request)
 
-    if not paths.root.exists():
-        raise PreconditionError("blocked", "WORKSPACE_MISSING", f"Workspace '{paths.root}' does not exist")
     if not git.is_inside_work_tree(paths.root):
-        raise PreconditionError("blocked", "WORKSPACE_NOT_GIT", f"Workspace '{paths.root}' is not a Git work tree")
+        if paths.root.exists() and any(paths.root.iterdir()):
+            raise PreconditionError("blocked", "WORKSPACE_NOT_GIT", f"Workspace '{paths.root}' exists and is not an empty Git destination")
+        paths.root.parent.mkdir(parents=True, exist_ok=True)
+        git.clone_repository(request.target.repository, paths.root)
+        git.checkout_detached(paths.root, request.target.base_commit)
 
     branch = git.current_branch(paths.root)
+    if branch == "HEAD":
+        git.checkout_work_branch(paths.root, request.target.branch, request.target.base_commit)
+        branch = git.current_branch(paths.root)
     if branch != request.target.branch:
         raise PreconditionError(
             "blocked",
@@ -93,13 +98,19 @@ def prepare_workspace(request: SpecRequest) -> PreparedWorkspace:
     paths.work_dir.mkdir(parents=True, exist_ok=True)
     staged_intent = paths.work_dir / "intent.md"
     staged_profile = paths.work_dir / "policy-profile.md"
-    if not paths.intent_input.is_file():
+    external_inputs = paths.root.parent / ".agent" / "inputs" / request.invocation_id
+    intent_input = external_inputs / "intent.md"
+    policy_profile_input = external_inputs / "policy-profile.md"
+    if not intent_input.is_file() or not policy_profile_input.is_file():
+        intent_input = paths.intent_input
+        policy_profile_input = paths.policy_profile_input
+    if not intent_input.is_file():
         raise PreconditionError("blocked", "INTENT_NOT_STAGED", "The invocation has no staged frozen intent snapshot")
-    if not paths.policy_profile_input.is_file():
+    if not policy_profile_input.is_file():
         raise PreconditionError("blocked", "POLICY_PROFILE_NOT_STAGED", "The invocation has no staged frozen policy-profile snapshot")
 
-    intent_data = paths.intent_input.read_bytes()
-    profile_data = paths.policy_profile_input.read_bytes()
+    intent_data = intent_input.read_bytes()
+    profile_data = policy_profile_input.read_bytes()
     intent_hash = sha256_bytes(intent_data)
     profile_hash = sha256_bytes(profile_data)
     if intent_hash != request.intent.frozen_artifact_sha256:

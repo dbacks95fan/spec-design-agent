@@ -255,6 +255,8 @@ def run_spec_design(
             [prepared.paths.intent_rel, prepared.paths.policy_profile_rel, prepared.paths.spec_rel, prepared.paths.work_contract_rel, prepared.paths.run_rel],
             f"spec({request.work_item}): spec v{spec_version} and Work Contract ready for human acceptance [runId {request.run_id}]",
         )
+        if cfg.provider != "mock":
+            git.push_branch(prepared.paths.root, request.target.branch)
 
         non_blocking = list(generated.non_blocking_concerns)
         if facts.limit_hit:

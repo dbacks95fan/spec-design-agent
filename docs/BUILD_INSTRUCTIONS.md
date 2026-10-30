@@ -10,10 +10,10 @@ The implementation must be usable as a bounded job. Containerization is an agent
 
 1. Accept a structured work request defined in [Integration](INTEGRATION.md).
 2. Accept only a Spec & Design invocation mapped from canonical StageInvocation 1.1. Verify the embedded Prioritized `FreezeActivationEvent`, work identity, and raw-byte hashes for both frozen intent and policy profile; there is no Ready-for-Planning approval field.
-3. Work only in the assigned isolated workspace and `work/<intent-id>` branch. This implementation currently requires the workspace to be provisioned before invocation; it verifies but does not create it. Reconcile this with the canonical workspace-provisioning requirement before claiming full conformance.
+3. Clone the assigned target repository at the requested base commit into the supplied empty workspace. Create `work/<intent-id>` when it does not exist remotely; otherwise fetch and continue the existing branch. The agent commits and pushes only its authorized artifacts.
 4. Copy both verified snapshots byte-for-byte into `.agent/work/<intent-id>/`, then inspect repository instructions, product constitution, architecture, code, interfaces, tests, and operational constraints without modifying product files.
 5. Produce `spec.md` and a proposed Work Contract v3. Construct the contract from frozen identity, intent acceptance criteria and scope, policy controls, and repository-declared deterministic validation commands; validate it against the canonical WorkContract schema.
-6. Validate the artifact set, write `spec-run.json`, and commit only frozen copies and assigned engineering artifacts after validation succeeds.
+6. Validate the artifact set, write `spec-run.json`, commit only frozen copies and assigned engineering artifacts after validation succeeds, and push the work branch. A failed push is a failed stage result.
 7. Return a schema-valid result correlated to the invocation, with commit/path/hash references for both outputs. The Conductor alone owns workflow state and Trello updates.
 
 ## Delivery increments
@@ -24,7 +24,7 @@ Implement request/result schema validation; path, branch, and identifier validat
 
 ### 2. Workspace and repository inspection
 
-Use only the isolated workspace and work branch assigned by the invocation. Verify the base commit, copy and hash-check both frozen snapshots, and read repository-local instructions plus the product constitution and architecture. Capture repository facts needed for the spec without modifying product source code.
+Create or fetch the isolated work branch from the assigned target repository and base commit. Copy and hash-check both frozen snapshots, and read repository-local instructions plus the product constitution and architecture. Capture repository facts needed for the spec without modifying product source code.
 
 ### 3. Specification production
 

@@ -81,7 +81,12 @@ def test_e2e_ambiguous_requirement_exits_10(staged_repo_and_request):
 
 def test_e2e_invalid_workspace_exits_20(staged_repo_and_request):
     root, request, _text, _path = staged_repo_and_request
-    request["target"]["workspace"] = str(root / "does-not-exist")
+    # Keep the invalid destination outside the fixture repository. Git considers
+    # any child directory of a worktree to be inside that worktree.
+    invalid_workspace = root.parent / "nonempty-workspace"
+    request["target"]["workspace"] = str(invalid_workspace)
+    Path(request["target"]["workspace"]).mkdir()
+    (Path(request["target"]["workspace"]) / "unexpected.txt").write_text("preserve this", encoding="utf-8")
     code, result, _stderr = _invoke(_write(root, request))
     assert code == 20
     assert result["status"] == "blocked"
