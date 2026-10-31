@@ -4,6 +4,14 @@
 
 The Spec & Design Agent runs when the Conductor invokes `spec_design` after a card enters Spec & Design from Prioritized. It verifies the frozen intent and policy profile, consults the product repository's instructions, constitution, and architecture, then produces `spec.md` and a proposed Work Contract v3 for human acceptance. It does not write product code, change Trello, approve its own output, or make human-owned policy or product decisions.
 
+## Product and board neutrality
+
+Board event validation and product selection happen before invocation. The request supplies the resolved product ID, Trello card ID, frozen intent references, and target product repository. The agent processes that assigned context without connecting to Trello, choosing a product, or hardcoding a board, product name, or repository. A mismatch between request identity, frozen intent, and repository blocks the run.
+
+## GitHub access
+
+For the assigned product-code repository, the runtime supplies a short-lived GitHub App installation token with contents read/write access in `SPEC_AGENT_GITHUB_TOKEN`. The agent uses it for clone, fetch, and push operations, never writes it to the workspace or run record, and removes a generic `GITHUB_TOKEN` from Git subprocesses. The token is repository-scoped; repository branch protection governs which branches may change. The agent does not access `intent-backlog`; the Orchestrator supplies the frozen intent and policy-profile snapshots. Personal access tokens and ambient user credentials are not supported for product-code access. Missing or invalid App access blocks the run; it must not cause the agent to select another repository.
+
 ## Request
 
 The agent accepts request version 2 as defined by [`spec-request.schema.json`](../schemas/spec-request.schema.json). It is an adapter representation of canonical [`StageInvocation` 1.1](https://github.com/dbacks95fan/agentic-sdlc/blob/main/schemas/lifecycle-contracts.schema.json), plus a per-run ID and workspace details. The embedded `freezeActivation` must be the Conductor's Prioritized `FreezeActivationEvent`; its typed `intent` and `policy_profile` references are authoritative. The request contains no Ready-for-Planning approval.

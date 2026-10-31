@@ -8,6 +8,7 @@ def test_redacts_anthropic_and_generic_keys():
 
 def test_redacts_github_tokens_and_bearer():
     assert redact("token ghp_ABCdef123456") == "token [REDACTED_GITHUB_TOKEN]"
+    assert redact("token ghs_ABCdef123456") == "token [REDACTED_GITHUB_TOKEN]"
     assert redact("Authorization: Bearer abc.def.ghi") == "Authorization: Bearer [REDACTED]"
 
 
