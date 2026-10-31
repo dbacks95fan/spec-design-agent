@@ -10,7 +10,7 @@ Board event validation and product selection happen before invocation. The reque
 
 ## GitHub access
 
-For GitHub HTTPS repositories, the runtime supplies a short-lived GitHub App installation token in `SPEC_AGENT_GITHUB_TOKEN`. The token must be restricted to the target product repository and the minimum read/write permissions needed for the assigned artifacts. The agent uses it for clone, fetch, and push operations, never writes it to the workspace or run record, and removes a generic `GITHUB_TOKEN` from Git subprocesses. Personal access tokens and ambient user credentials are not supported as fallbacks. Missing or invalid App access blocks the run; it must not cause the agent to select another repository.
+For the assigned product-code repository, the runtime supplies a short-lived GitHub App installation token with contents read/write access in `SPEC_AGENT_GITHUB_TOKEN`. The agent uses it for clone, fetch, and push operations, never writes it to the workspace or run record, and removes a generic `GITHUB_TOKEN` from Git subprocesses. The token is repository-scoped; repository branch protection governs which branches may change. The agent does not access `intent-backlog`; the Orchestrator supplies the frozen intent and policy-profile snapshots. Personal access tokens and ambient user credentials are not supported for product-code access. Missing or invalid App access blocks the run; it must not cause the agent to select another repository.
 
 ## Request
 

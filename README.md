@@ -30,7 +30,7 @@ uv run spec-design-agent spec --request /path/to/request.json --provider claude
 `request.json` follows `schemas/spec-request.schema.json` (see `docs/OPERATING_CONTRACT.md`).
 The result follows `schemas/spec-result.schema.json`.
 
-For GitHub HTTPS repositories, the process that launches the agent must provide a short-lived, repository-scoped GitHub App installation token as `SPEC_AGENT_GITHUB_TOKEN`. The App private key stays with the token-minting provider and is never passed to the agent. Do not use `GITHUB_TOKEN`, a personal access token, or a developer's ambient GitHub login as a fallback. The agent uses the assigned repository in the request and does not route work by Trello board.
+For the assigned product-code repository, the process that launches the agent must provide a short-lived GitHub App installation token with read/write access as `SPEC_AGENT_GITHUB_TOKEN`. The App private key stays with the token-minting provider and is never passed to the agent. Do not use `GITHUB_TOKEN`, a personal access token, or a developer's ambient GitHub login as a fallback. The agent does not access `intent-backlog`; it uses the frozen snapshot supplied with its request and the assigned repository, independent of the source Trello board.
 
 ### Model provider
 
