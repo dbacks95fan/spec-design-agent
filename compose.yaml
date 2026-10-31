@@ -7,7 +7,7 @@ services:
     container_name: spec-design-agent
     restart: "no"
     env_file:
-      - ./.runtime.env
+      - "${SPEC_AGENT_RUNTIME_ENV_FILE:-../.config/spec-design-agent/runtime.env}"
     environment:
       # Transport-neutral: choose the generator provider without rebuilding the image.
       SPEC_AGENT_PROVIDER: "${SPEC_AGENT_PROVIDER:-claude}"
