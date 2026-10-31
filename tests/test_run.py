@@ -42,6 +42,45 @@ def test_happy_path_commits_spec_and_returns_spec_ready(staged_repo_and_request)
     assert "spec(INT-MF-0042): spec v1 and Work Contract ready for human acceptance" in _git(root, ["log", "-1", "--pretty=%s"])
 
 
+def test_committed_work_contract_requires_exactly_the_manifest_checks(staged_repo_and_request):
+    import yaml
+
+    root, request, _text, _path = staged_repo_and_request
+    outcome = run_spec_design(request, **_mock_deps())
+    assert outcome.result.status == "spec_ready"
+    contract = yaml.safe_load(_git(root, ["show", f"{outcome.result.spec_commit}:.agent/work/INT-MF-0042/work-contract.yaml"]))
+    assert contract["required_validation"] == [
+        {"name": "build", "command": "npm run build"},
+        {"name": "automated_tests", "command": "npm run test:server"},
+    ]
+
+
+class _MustNotGenerate:
+    name = "must-not-generate"
+
+    def generate(self, data):
+        raise AssertionError("a paid generation must not run when the check manifest is unusable")
+
+
+def test_unusable_check_manifest_blocks_before_generation(staged_repo_and_request, monkeypatch):
+    root, request, _text, _path = staged_repo_and_request
+    monkeypatch.delenv("SPEC_AGENT_CHECK_MANIFEST")
+    head_before = _git(root, ["rev-parse", "HEAD"])
+    outcome = run_spec_design(request, generator=_MustNotGenerate(), config=load_config(provider="mock"))
+    assert outcome.result.status == "blocked"
+    assert outcome.exit_code == EXIT_CODES["blocked"]
+    assert "CHECK_MANIFEST_NOT_CONFIGURED" in " ".join(outcome.result.blocking_concerns)
+    assert _git(root, ["rev-parse", "HEAD"]) == head_before
+
+
+def test_target_repository_missing_from_manifest_blocks(staged_repo_and_request):
+    _root, request, _text, _path = staged_repo_and_request
+    request["target"]["repository"] = "https://github.com/dbacks95fan/perioparrot"
+    outcome = run_spec_design(request, generator=_MustNotGenerate(), config=load_config(provider="mock"))
+    assert outcome.result.status == "blocked"
+    assert "CHECK_MANIFEST_REPOSITORY_UNKNOWN" in " ".join(outcome.result.blocking_concerns)
+
+
 def test_idempotent_replay_returns_same_result(staged_repo_and_request):
     _root, request, _text, _path = staged_repo_and_request
     first = run_spec_design(request, **_mock_deps())

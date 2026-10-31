@@ -34,7 +34,6 @@ class RepoFacts:
     instruction_files: list[InstructionFile] = field(default_factory=list)
     language_histogram: dict[str, int] = field(default_factory=dict)
     test_signals: list[str] = field(default_factory=list)
-    validation_commands: list[dict[str, str]] = field(default_factory=list)
     top_level_entries: list[str] = field(default_factory=list)
     files_scanned: int = 0
     limit_hit: str | None = None
@@ -73,7 +72,6 @@ def inspect_repository(root: str | Path, limits: InspectionLimits = DEFAULT_LIMI
     deadline = time.monotonic() + limits.deadline_ms / 1000
     facts = RepoFacts()
     test_signals: set[str] = set()
-    validation_commands: list[dict[str, str]] = [{"name": "diff_whitespace", "command": "git diff --check"}]
 
     facts.top_level_entries = sorted(
         (f"{e.name}/" if e.is_dir() else e.name) for e in root.iterdir()
@@ -94,7 +92,6 @@ def inspect_repository(root: str | Path, limits: InspectionLimits = DEFAULT_LIMI
             scripts = json.loads(pkg.read_text(encoding="utf-8")).get("scripts", {})
             if scripts.get("test"):
                 test_signals.add(f"js: npm test -> {scripts['test']}")
-                validation_commands.append({"name": "repository_tests", "command": "npm test"})
         except (json.JSONDecodeError, OSError):
             pass
     pyproject = root / "pyproject.toml"
@@ -103,13 +100,8 @@ def inspect_repository(root: str | Path, limits: InspectionLimits = DEFAULT_LIMI
             project = tomllib.loads(pyproject.read_text(encoding="utf-8"))
             if "pytest" in project.get("tool", {}):
                 test_signals.add("python: pytest configured")
-                validation_commands.append({"name": "repository_tests", "command": "uv run pytest"})
         except (tomllib.TOMLDecodeError, OSError):
             pass
-    if (root / "go.mod").is_file():
-        validation_commands.append({"name": "repository_tests", "command": "go test ./..."})
-    if (root / "Cargo.toml").is_file():
-        validation_commands.append({"name": "repository_tests", "command": "cargo test"})
 
     def walk(directory: Path, depth: int) -> None:
         if facts.limit_hit:
@@ -143,9 +135,4 @@ def inspect_repository(root: str | Path, limits: InspectionLimits = DEFAULT_LIMI
 
     walk(root, 1)
     facts.test_signals = sorted(test_signals)
-    seen_commands: set[str] = set()
-    for item in validation_commands:
-        if item["command"] not in seen_commands:
-            facts.validation_commands.append(item)
-            seen_commands.add(item["command"])
     return facts

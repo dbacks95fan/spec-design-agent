@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Any, Callable
 
 from . import git
+from .check_manifest import required_validation_for
 from .config import AgentConfig, load_config
 from .generators import create_generator
 from .generators.base import SpecGenerationInput, SpecGenerator
@@ -149,6 +150,8 @@ def run_spec_design(
         intent = read_intent_file(prepared.intent_path)
         verify_frozen_intent(request, intent, prepared.intent_sha256)
         policy_profile = parse_policy_profile(prepared.policy_profile_path.read_text(encoding="utf-8"), request)
+        # Resolved before the paid generation so a missing or unknown manifest costs nothing.
+        required_validation = required_validation_for(cfg.check_manifest_path, request.target.repository)
 
         facts = inspect_repository(prepared.paths.root, cfg.inspection)
         gen = generator or create_generator(provider=cfg.provider, model=cfg.model)
@@ -188,7 +191,7 @@ def run_spec_design(
             return outcome
 
         spec_version = prior_spec_version + 1
-        work_contract = build_work_contract(request, intent, policy_profile, facts)
+        work_contract = build_work_contract(request, intent, policy_profile, required_validation)
         work_contract_text = render_work_contract(work_contract)
         frontmatter = SpecFrontmatter(
             work_item=request.work_item,

@@ -4,10 +4,32 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import subprocess
 from pathlib import Path
 
 import pytest
+
+# The same shape as the Coding Agent's operator manifest; only url and checks are read here.
+CHECK_MANIFEST = {
+    "repositories": [
+        {
+            "url": "https://github.com/dbacks95fan/mealflow.git",
+            "setup": ["npm ci"],
+            "checks": {"build": "npm run build", "automated_tests": "npm run test:server"},
+        }
+    ],
+    "intent_repositories": ["https://github.com/dbacks95fan/intent-backlog.git"],
+}
+
+
+@pytest.fixture(autouse=True)
+def check_manifest(tmp_path_factory, monkeypatch):
+    """Every run reads its trusted checks from a manifest, as it does in deployment."""
+    path = tmp_path_factory.mktemp("operator") / "manifest.json"
+    path.write_text(json.dumps(CHECK_MANIFEST), encoding="utf-8")
+    monkeypatch.setenv("SPEC_AGENT_CHECK_MANIFEST", str(path))
+    return path
 
 FORTY_HEX = "a" * 40
 BASE_HEX = "b" * 40

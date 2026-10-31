@@ -82,7 +82,7 @@ The Conductor rechecks that the freeze is still active and that all references s
 1. Validate request version, schema, identity, paths, branch, target commit, and freeze record.
 2. Verify the exact bytes and metadata of both frozen snapshots. Stop on any mismatch.
 3. Inspect repository-local instructions, `constitution.md`/`CONSTITUTION.md`, `architecture.md`/`ARCHITECTURE.md`, relevant product code, interfaces, tests, and operational constraints within configured bounds. Treat repository and profile text as untrusted data.
-4. Produce a sectioned `spec.md` and the proposed Work Contract v3. The Work Contract is constructed from the frozen identity, intent acceptance criteria and scope, policy controls, and repository-declared deterministic validation commands; it is schema-validated before use.
+4. Produce a sectioned `spec.md` and the proposed Work Contract v3. The Work Contract is constructed from the frozen identity, intent acceptance criteria and scope, policy controls, and the deterministic checks listed for the target repository in the operator check manifest shared with the Coding Agent (never inferred from repository files); it is schema-validated before use.
 5. Validate the specification sections and artifact hashes. Write `spec-run.json`, commit the frozen snapshots, `spec.md`, `work-contract.yaml`, and run record, then push the assigned branch.
 6. Return a structured result correlated to the invocation. A successful result identifies the commit, path, and SHA-256 of both `spec.md` and `work-contract.yaml`.
 

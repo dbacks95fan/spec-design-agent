@@ -1,5 +1,5 @@
 # Copyright (c) 2026 DPSystems, LLC.
-# ABOUTME: Builds the proposed Work Contract v3 from frozen inputs and repository checks.
+# ABOUTME: Builds the proposed Work Contract v3 from frozen inputs and the trusted check manifest.
 
 from __future__ import annotations
 
@@ -9,7 +9,6 @@ from typing import Any
 import yaml
 
 from .policy_profile import ParsedPolicyProfile
-from .repo_inspect import RepoFacts
 from .schema import validate
 from .types import ParsedIntent, PreconditionError, SpecRequest
 
@@ -32,7 +31,7 @@ def build_work_contract(
     request: SpecRequest,
     intent: ParsedIntent,
     policy_profile: ParsedPolicyProfile,
-    repo_facts: RepoFacts,
+    required_validation: list[dict[str, str]],
 ) -> dict[str, Any]:
     if not intent.acceptance_criteria:
         raise PreconditionError(
@@ -73,7 +72,7 @@ def build_work_contract(
         "target": {"repository": request.target.repository, "commit_sha": request.target.base_commit},
         "acceptance_criteria": list(intent.acceptance_criteria),
         "permitted_scope": {"included": included, "excluded": excluded},
-        "required_validation": list(repo_facts.validation_commands),
+        "required_validation": [dict(item) for item in required_validation],
         "policy_controls": [control.to_json() for control in policy_profile.controls],
         "release_requirements": _requirements(intent, "release requirements"),
         "observation_requirements": _requirements(intent, "observation requirements"),

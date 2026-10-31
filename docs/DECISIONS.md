@@ -22,6 +22,7 @@
 - **Transport:** a bounded CLI job (`spec-design-agent spec --request <file>`), no service runtime, no HTTP/health endpoints.
 - **Model provider:** provider-neutral `SpecGenerator` seam with `claude`, `codex`, and `mock` implementations selected by `SPEC_AGENT_PROVIDER`; `claude-agent-sdk` is an optional extra.
 - **Schema library:** `jsonschema` (draft-07).
+- **Required validation comes from the operator check manifest:** `required_validation` lists exactly the checks named for the target repository in the manifest at `SPEC_AGENT_CHECK_MANIFEST`. This is the same file the Coding Agent enforces (`coding-agent/config/manifest.json`), so the contract can't name a check the Coding Agent won't run, and nothing is inferred from repository files. A missing, invalid, or non-matching manifest returns `blocked` before any paid generation.
 - **Intent staging:** the agent consumes an already-staged frozen `intent.md`; it does not clone the intent-backlog repository. Absent staging returns `blocked` / `INTENT_NOT_STAGED`.
 - **Workspace provisioning:** this implementation verifies an already-assigned isolated branch/worktree; it does not create one. The canonical SDLC assigns isolation creation to the first engineering worker, so invocation/runtime integration must close this gap before full conformance can be claimed.
 - **Git:** required on `PATH` for workspace verification and the single agent-owned artifact commit; commits are made without `--no-verify`.

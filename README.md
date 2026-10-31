@@ -62,7 +62,7 @@ knobs (timeout, inspection bounds).
 2. Clone the target repository at the requested base commit, then create `work/<intent-id>` or fetch that existing remote branch.
 3. Verify the raw bytes of both frozen input snapshots against their `ArtifactRef` hashes, then copy them into `.agent/work/<work-item>/`.
 4. Read repository instructions, the product constitution and architecture, and bounded repository facts without changing product files.
-5. Generate `spec.md`; build Work Contract v3 from the verified intent, policy profile, and repository-declared validation commands. A material unresolved decision returns `needs_decision`.
+5. Generate `spec.md`; build Work Contract v3 from the verified intent, policy profile, and the trusted checks listed for the target repository in the operator check manifest (`SPEC_AGENT_CHECK_MANIFEST`), the same manifest the Coding Agent enforces. The manifest is read before generation; if it is missing, invalid, or has no entry for the repository, the run is `blocked`. A material unresolved decision returns `needs_decision`.
 6. Validate both outputs against their contracts, record provenance, commit the frozen copies, `spec.md`, `work-contract.yaml`, and `spec-run.json`, then push the work branch. The result returns invocation identity plus commit, path, and hash references for both outputs.
 
 Repeating a request with the same `runId` returns the existing terminal result without re-running. `schemas/work-contract.schema.json` is a local validation copy; `agentic-sdlc/schemas/lifecycle-contracts.schema.json` remains authoritative.
