@@ -12,7 +12,7 @@ from typing import Any
 _REDACTIONS: list[tuple[re.Pattern[str], str]] = [
     (re.compile(r"sk-ant-[A-Za-z0-9_-]+"), "[REDACTED_ANTHROPIC_KEY]"),
     (re.compile(r"sk-[A-Za-z0-9_-]+"), "[REDACTED_API_KEY]"),
-    (re.compile(r"gh[pousr]_[A-Za-z0-9]+"), "[REDACTED_GITHUB_TOKEN]"),
+    (re.compile(r"gh[pousrs]_[A-Za-z0-9]+"), "[REDACTED_GITHUB_TOKEN]"),
     (re.compile(r"Bearer\s+[^\s\"']+", re.IGNORECASE), "Bearer [REDACTED]"),
     (re.compile(r"(https?://)[^/\s:@]+:[^/\s@]+@"), r"\1[REDACTED]@"),
 ]
