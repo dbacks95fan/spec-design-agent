@@ -19,6 +19,8 @@ class AgentConfig:
     model: str | None
     generation_timeout_ms: int
     inspection: InspectionLimits
+    # Operator-controlled manifest of trusted checks, shared with the Coding Agent.
+    check_manifest_path: str | None
 
 
 def _int_from_env(name: str, fallback: int) -> int:
@@ -40,6 +42,7 @@ def load_config(
     model: str | None = None,
     generation_timeout_ms: int | None = None,
     inspection: InspectionLimits | None = None,
+    check_manifest_path: str | None = None,
 ) -> AgentConfig:
     return AgentConfig(
         provider=provider or os.environ.get("SPEC_AGENT_PROVIDER") or DEFAULT_PROVIDER,
@@ -56,4 +59,5 @@ def load_config(
             max_depth=_int_from_env("SPEC_AGENT_MAX_DEPTH", DEFAULT_LIMITS.max_depth),
             deadline_ms=_int_from_env("SPEC_AGENT_INSPECT_DEADLINE_MS", DEFAULT_LIMITS.deadline_ms),
         ),
+        check_manifest_path=check_manifest_path or os.environ.get("SPEC_AGENT_CHECK_MANIFEST") or None,
     )
