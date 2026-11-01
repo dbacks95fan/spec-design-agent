@@ -10,7 +10,7 @@ from .claude import ClaudeGenerator
 from .codex import CodexGenerator
 from .mock import MockGenerator
 
-DEFAULT_PROVIDER = "claude"
+DEFAULT_PROVIDER = "codex"
 
 
 def create_generator(*, provider: str | None = None, model: str | None = None) -> SpecGenerator:

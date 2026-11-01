@@ -26,6 +26,9 @@ def _git_env() -> dict[str, str]:
     token = _app_token()
     env.pop("GITHUB_TOKEN", None)
     env.pop("SPEC_AGENT_GITHUB_TOKEN", None)
+    # Git never needs a model key, so it is not handed one.
+    env.pop("OPENAI_API_KEY", None)
+    env.pop("ANTHROPIC_API_KEY", None)
     if token:
         env["SPEC_AGENT_GITHUB_TOKEN"] = token
     count = int(env.get("GIT_CONFIG_COUNT", "0"))

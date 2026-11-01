@@ -14,7 +14,7 @@ def test_load_config_defaults(monkeypatch):
         if key.startswith("SPEC_AGENT_"):
             monkeypatch.delenv(key, raising=False)
     config = load_config()
-    assert config.provider == "claude"
+    assert config.provider == "codex"
     assert config.generation_timeout_ms == 600000
     assert config.inspection.max_depth == 6
 
@@ -55,5 +55,5 @@ def test_dockerfile_entrypoint_is_the_cli_and_image_is_non_root():
 
 def test_env_example_documents_provider_choices():
     env = (ROOT / ".env.example").read_text(encoding="utf-8")
-    assert "SPEC_AGENT_PROVIDER=claude" in env
+    assert "SPEC_AGENT_PROVIDER=codex" in env
     assert "claude | codex | mock" in env
