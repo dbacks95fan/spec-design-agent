@@ -10,7 +10,7 @@ from . import __version__
 from .repo_inspect import DEFAULT_LIMITS, InspectionLimits
 
 AGENT_VERSION = __version__
-DEFAULT_PROVIDER = "claude"
+DEFAULT_PROVIDER = "codex"
 
 
 @dataclass(frozen=True)

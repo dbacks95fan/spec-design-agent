@@ -31,6 +31,17 @@ def test_git_uses_only_the_spec_agent_installation_token(monkeypatch):
     assert env["GIT_CONFIG_KEY_2"] == "credential.https://github.com.useHttpPath"
 
 
+def test_git_is_never_handed_a_model_api_key(monkeypatch):
+    monkeypatch.setenv("OPENAI_API_KEY", "sk-openai-must-not-reach-git")
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-ant-must-not-reach-git")
+
+    env = git._git_env()
+
+    assert "OPENAI_API_KEY" not in env
+    assert "ANTHROPIC_API_KEY" not in env
+    assert os.environ["OPENAI_API_KEY"] == "sk-openai-must-not-reach-git", "the generator still needs it"
+
+
 def test_github_clone_requires_installation_token_not_generic_token(monkeypatch, tmp_path):
     monkeypatch.delenv("SPEC_AGENT_GITHUB_TOKEN", raising=False)
     monkeypatch.setenv("GITHUB_TOKEN", "personal-token-must-not-be-used")

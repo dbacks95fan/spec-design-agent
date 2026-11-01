@@ -38,12 +38,15 @@ The spec generator is provider-neutral, selected by `SPEC_AGENT_PROVIDER`:
 
 | Provider | How it runs | Notes |
 | --- | --- | --- |
-| `claude` (default) | Claude Agent SDK with read-only tools over the workspace | needs the optional `claude` extra and `ANTHROPIC_API_KEY` |
-| `codex` | `codex exec --sandbox read-only` from the workspace | needs the Codex CLI on `PATH` and an authenticated local Codex CLI session |
+| `codex` (default) | OpenAI Responses API called directly with `OPENAI_API_KEY`; the model reads the workspace through three read-only tools (list a directory, read a file, search text) confined to the checkout, never `.git` | no CLI and no extra dependency; default model `gpt-6.1-sol` |
+| `claude` | Claude Agent SDK with read-only tools over the workspace | needs the optional `claude` extra and `ANTHROPIC_API_KEY` |
 | `mock` | deterministic, offline | used by the test suite and for dry runs |
 
-`SPEC_AGENT_MODEL` overrides the model id. See `.env.example` for the full set of
-knobs (timeout, inspection bounds).
+`SPEC_AGENT_MODEL` overrides the model id, and `SPEC_AGENT_REASONING_EFFORT` sets the
+OpenAI reasoning effort for `codex`. The `codex` provider is stateless: requests use
+`store: false`, so OpenAI keeps no copy of the exchange, and each turn resends the
+conversation with its encrypted reasoning. Model keys are never passed to `git`. See
+`.env.example` for the full set of knobs (timeout, inspection bounds).
 
 ### Exit codes
 

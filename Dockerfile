@@ -7,8 +7,8 @@ COPY pyproject.toml uv.lock README.md ./
 RUN uv sync --frozen --no-dev --extra claude --no-install-project
 COPY src ./src
 COPY schemas ./schemas
-# --extra claude: the default provider is `claude`, so the image must carry the
-# Claude Agent SDK or it cannot run its own default configuration.
+# --extra claude: `claude` remains a selectable provider, so the image carries the
+# Claude Agent SDK. The default `codex` provider needs nothing beyond the standard library.
 RUN uv sync --frozen --no-dev --extra claude
 
 FROM python:3.12-slim-bookworm

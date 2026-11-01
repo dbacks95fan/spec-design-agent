@@ -63,3 +63,16 @@ runtime + tests + docs. 80 tests still green.
 Flagged upstream: `intent-creation-skill` wasn't touched, so its `output-format.md`
 (now the ratified canonical schema) still has one hash and its `SKILL.md` still
 uses the retired board vocabulary. Not mine to fix.
+
+2026-10-31: the `codex` provider no longer shells out to the Codex CLI. It calls the
+OpenAI Responses API directly with `OPENAI_API_KEY`, using only the standard library,
+and is now the default provider, since Spec & Design runs on Codex. The image never
+carried the CLI, so the old path could not have run in a container anyway.
+
+- **Three read-only tools instead of a sandboxed CLI.** The model can list, read,
+  and search the checkout. Paths are resolved and must stay inside it, `.git` is
+  refused, and output is capped. A refusal goes back to the model as text.
+- **Stateless.** `store: false`, so OpenAI keeps nothing; each turn resends the
+  conversation, including the encrypted reasoning the model needs between calls.
+- **Model keys stay away from Git.** Every `git` child now runs without
+  `OPENAI_API_KEY` or `ANTHROPIC_API_KEY` in its environment.
